@@ -71,7 +71,7 @@ def _():
     import numpy as np
     import numpy.linalg as la
 
-    return
+    return np, plt, sci
 
 
 @app.cell(hide_code=True)
@@ -131,10 +131,57 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    We define the physical constants of the model:
+    - $g = 1$ m/s² : gravity constant
+    - $M = 1$ kg : total mass of the booster
+    - $\ell = 2$ m : total length of the booster
+    """)
+    return
+
+
+@app.cell
+def _():
+    g = 1.0   # gravity (m/s²)
+    M = 1.0   # mass (kg)
+    l = 2.0   # total length of booster (m)
+    return M, g, l
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Forces
 
     Compute the cartesian coordinates $f_x$ and $f_y$ of the force applied to the booster by the reactor, functions of $f$, $\theta$ and $\phi$.
     """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    The reactor is at the base of the booster, at distance $\ell/2$ from the center of mass.
+    The force has amplitude $f$ and makes angle $\phi$ with the booster axis.
+    The booster itself makes angle $\theta$ with the vertical.
+    So the total angle of the force with the vertical is $(\theta + \phi)$, giving:
+
+    $$f_x = -f \sin(\theta + \phi)$$
+    $$f_y = f \cos(\theta + \phi)$$
+    """)
+    return
+
+
+@app.cell
+def _(M, g, np):
+    def force_components(f, theta, phi):
+        fx = -f * np.sin(theta + phi)
+        fy =  f * np.cos(theta + phi)
+        return fx, fy
+
+    # Quick check: when theta=0 and phi=0, force is purely vertical
+    fx, fy = force_components(M * g, 0.0, 0.0)
+    print(f"fx = {fx}  (expected 0.0)")
+    print(f"fy = {fy}  (expected {M*g})")
     return
 
 
@@ -145,6 +192,32 @@ def _(mo):
 
     Give the ordinary differential equation that governs the evolution of the position $(x, y)$ of the center of mass of the booster.
     """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    Applying Newton's second law to the center of mass $(x, y)$:
+
+    $$M\ddot{x} = f_x = -f\sin(\theta + \phi)$$
+    $$M\ddot{y} = f_y - Mg = f\cos(\theta + \phi) - Mg$$
+    """)
+    return
+
+
+@app.cell
+def _(M, g, np):
+    # Verification: when f = Mg, theta = 0, phi = 0
+    # the thrust exactly cancels gravity -> zero acceleration
+
+    f_test, theta_test, phi_test = M * g, 0.0, 0.0
+
+    xddot = (-f_test / M) * np.sin(theta_test + phi_test)
+    yddot = ( f_test / M) * np.cos(theta_test + phi_test) - g
+
+    print(f"xddot = {xddot}  (expected 0.0)")
+    print(f"yddot = {yddot}  (expected 0.0)")
     return
 
 
@@ -161,10 +234,57 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    The booster is modeled as a uniform rod of total length $\ell$ and mass $M$.
+    The moment of inertia about its center of mass is:
+
+    $$J = \frac{1}{12} M \ell^2$$
+    """)
+    return
+
+
+@app.cell
+def _(M, l):
+    J = M * l**2 / 12
+    print(f"J = {J} kg·m²")
+    return (J,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Tilt
 
     Give the ordinary differential equation that governs the evolution of the tilt angle $\theta$.
     """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    The reactor force is applied at the base, at distance $\ell/2$ from the center of mass.
+    The component of the force perpendicular to the booster axis generates a torque:
+
+    $$\tau = f \cdot \frac{\ell}{2} \cdot \sin(\phi)$$
+
+    Applying the rotational version of Newton's second law $J\ddot{\theta} = \tau$:
+
+    $$\ddot{\theta} = \frac{f \ell \sin(\phi)}{2J}$$
+    """)
+    return
+
+
+@app.cell
+def _(J, M, g, l, np):
+    # Verification: compute angular acceleration for a given force and angle
+    f_test   = M * g
+    phi_test = np.pi / 4
+
+    tau        = f_test * (l / 2) * np.sin(phi_test)
+    theta_ddot = tau / J
+
+    print(f"tau        = {tau:.4f} N·m")
+    print(f"theta_ddot = {theta_ddot:.4f} rad/s²")
     return
 
 
@@ -189,6 +309,46 @@ def _(mo):
     $$
     """)
     return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    The state vector is:
+    $$s = (x, v_x, y, v_y, \theta, \omega) \in \mathbb{R}^6$$
+
+    So the dimension is $n = 6$.
+
+    The vector field $F(s, f, \phi)$ is:
+
+    $$\dot{s} = F(s, f, \phi) = \begin{pmatrix} v_x \\ -\frac{f}{M}\sin(\theta+\phi) \\ v_y \\ \frac{f}{M}\cos(\theta+\phi) - g \\ \omega \\ \frac{f \ell \sin\phi}{J} \end{pmatrix}$$
+    """)
+    return
+
+
+@app.cell
+def _(J, M, g, l, np):
+    def F(s, f, phi):
+
+        x, vx, y, vy, theta, omega = s
+
+        return np.array([
+
+            vx,
+
+            -(f / M) * np.sin(theta + phi),
+
+            vy,
+
+            (f / M) * np.cos(theta + phi) - g,
+
+            omega,
+
+            (f * l * np.sin(phi)) / J
+
+        ])
+
+    return (F,)
 
 
 @app.cell(hide_code=True)
@@ -231,6 +391,45 @@ def _(mo):
     return
 
 
+@app.cell
+def _(F, sci):
+    def redstart_solve(t_span, y0, f_phi):
+
+        def ode(t, s):
+
+            f, phi = f_phi(t, s)
+
+            return F(s, f, phi)
+
+    
+
+        result = sci.solve_ivp(
+
+            ode,
+
+            t_span,
+
+            y0,
+
+            dense_output=True,
+
+            max_step=0.01
+
+        )
+
+    
+
+        def sol(t):
+
+            return result.sol(t)
+
+    
+
+        return sol
+
+    return (redstart_solve,)
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -242,6 +441,68 @@ def _(mo):
 
     Check your `redstart_solve` function in this scenario and produce a graph that allows us to check the above answer numerically/visually.
     """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    In free fall with $y(0) = 10$, $\dot{y}(0) = 0$, $f = 0$:
+
+    $$y(t) = 10 - \frac{1}{2}g t^2 = 10 - \frac{t^2}{2}$$
+
+    Setting $y(t^*) = \ell = 1$:
+
+    $$t^* = \sqrt{2(10 - 1)} = \sqrt{18} = 3\sqrt{2} \approx 4.243 \text{ s}$$
+    """)
+    return
+
+
+@app.cell
+def _(l, np, plt, redstart_solve):
+    def free_fall_example():
+
+        t_span = [0.0, 5.0]
+
+        y0 = [0.0, 0.0, 10.0, 0.0, 0.0, 0.0]
+
+        def f_phi(t, y):
+
+            return np.array([0.0, 0.0])
+
+        sol = redstart_solve(t_span, y0, f_phi)
+
+        t = np.linspace(t_span[0], t_span[1], 1000)
+
+        y_t = sol(t)[2]
+
+    
+
+        t_theory = np.sqrt(2 * (10.0 - l))
+
+    
+
+        plt.figure()
+
+        plt.plot(t, y_t, label=r"$y(t)$ (height in meters)")
+
+        plt.plot(t, l * np.ones_like(t), color="grey", ls="--", label=r"$y=\ell$")
+
+        plt.axvline(t_theory, color="red", ls=":", label=f"$t^*={t_theory:.3f}$ s (theory)")
+
+        plt.title("Free Fall")
+
+        plt.xlabel("time $t$")
+
+        plt.grid(True)
+
+        plt.legend()
+
+        return plt.gcf()
+
+
+
+    free_fall_example()
     return
 
 
