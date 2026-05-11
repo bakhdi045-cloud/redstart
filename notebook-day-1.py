@@ -128,22 +128,11 @@ def _(mo):
     return
 
 
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    We define the physical constants of the model:
-    - $g = 1$ m/s² : gravity constant
-    - $M = 1$ kg : total mass of the booster
-    - $\ell = 2$ m : total length of the booster
-    """)
-    return
-
-
 @app.cell
 def _():
-    g = 1.0   # gravity (m/s²)
-    M = 1.0   # mass (kg)
-    l = 2.0   # total length of booster (m)
+    g = 1.0
+    M = 1.0
+    l = 1.0
     return M, g, l
 
 
@@ -157,32 +146,31 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    The reactor is at the base of the booster, at distance $\ell/2$ from the center of mass.
-    The force has amplitude $f$ and makes angle $\phi$ with the booster axis.
-    The booster itself makes angle $\theta$ with the vertical.
-    So the total angle of the force with the vertical is $(\theta + \phi)$, giving:
+    **Formule.** L'axe du booster est incliné de $\theta$ par rapport à la verticale (CCW positif). La force réacteur fait un angle $\phi$ supplémentaire (CCW) avec cet axe, donc un angle total $\theta + \phi$ avec la verticale :
 
-    $$f_x = -f \sin(\theta + \phi)$$
-    $$f_y = f \cos(\theta + \phi)$$
+    $$
+    \boxed{\;f_x = -f\sin(\theta + \phi), \qquad f_y = +f\cos(\theta + \phi)\;}
+    $$
+
+    *Vérifications :* si $\theta = \phi = 0$, alors $(f_x, f_y) = (0, f)$ — poussée verticale vers le haut.
+    Si $\theta = 0,\ \phi = \pi/2$, alors $(f_x, f_y) = (-f, 0)$ — poussée horizontale vers la gauche.
     """)
     return
 
 
 @app.cell
-def _(M, g, np):
-    def force_components(f, theta, phi):
+def _(np):
+    def reactor_force_components(f: float, theta: float, phi: float):
+
         fx = -f * np.sin(theta + phi)
-        fy =  f * np.cos(theta + phi)
+        fy = f * np.cos(theta + phi)
         return fx, fy
 
-    # Quick check: when theta=0 and phi=0, force is purely vertical
-    fx, fy = force_components(M * g, 0.0, 0.0)
-    print(f"fx = {fx}  (expected 0.0)")
-    print(f"fy = {fy}  (expected {M*g})")
-    return
+
+    return (reactor_force_components,)
 
 
 @app.cell(hide_code=True)
@@ -195,29 +183,33 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    Applying Newton's second law to the center of mass $(x, y)$:
+    **Équation.** Le booster subit deux forces : le réacteur $(f_x, f_y)$ et le poids $(0, -Mg)$. La deuxième loi de Newton appliquée au centre de masse donne :
 
-    $$M\ddot{x} = f_x = -f\sin(\theta + \phi)$$
-    $$M\ddot{y} = f_y - Mg = f\cos(\theta + \phi) - Mg$$
+    $$
+    M\ddot{x} = f_x, \qquad M\ddot{y} = f_y - Mg
+    $$
+
+    soit, en remplaçant par l'expression de $(f_x, f_y)$ :
+
+    $$
+    \boxed{\;\ddot{x} = -\dfrac{f}{M}\sin(\theta + \phi), \qquad \ddot{y} = \dfrac{f}{M}\cos(\theta + \phi) - g\;}
+    $$
     """)
     return
 
 
 @app.cell
-def _(M, g, np):
-    # Verification: when f = Mg, theta = 0, phi = 0
-    # the thrust exactly cancels gravity -> zero acceleration
+def _(M, g, reactor_force_components):
+    def com_acceleration(f: float, theta: float, phi: float):
+        fx, fy = reactor_force_components(f, theta, phi)
+        ax = fx / M
+        ay = fy / M - g
+        return ax, ay
 
-    f_test, theta_test, phi_test = M * g, 0.0, 0.0
 
-    xddot = (-f_test / M) * np.sin(theta_test + phi_test)
-    yddot = ( f_test / M) * np.cos(theta_test + phi_test) - g
-
-    print(f"xddot = {xddot}  (expected 0.0)")
-    print(f"yddot = {yddot}  (expected 0.0)")
     return
 
 
@@ -234,18 +226,25 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    The booster is modeled as a uniform rod of total length $\ell$ and mass $M$.
-    The moment of inertia about its center of mass is:
+    **Calcul.** Le booster est une tige homogène de masse $M$ et de longueur totale $2\ell$. La densité linéique vaut $\lambda = M / (2\ell)$. Le moment d'inertie autour du centre de masse est :
 
-    $$J = \frac{1}{12} M \ell^2$$
+    $$
+    J = \int_{-\ell}^{\ell} \lambda\, r^2\, dr
+      = \frac{M}{2\ell} \cdot \left[\frac{r^3}{3}\right]_{-\ell}^{\ell}
+      = \frac{M}{2\ell} \cdot \frac{2\ell^3}{3}
+      = \boxed{\;\frac{M\ell^2}{3}\;}
+    $$
+
+    soit, sous la forme standard du barreau de longueur $L = 2\ell$ : $J = \dfrac{1}{12} M L^2 = \dfrac{1}{12} M (2\ell)^2$.
     """)
     return
 
 
 @app.cell
 def _(M, l):
-    J = M * l**2 / 12
-    print(f"J = {J} kg·m²")
+
+    J = (1.0 / 12.0) * M * (2.0 * l) ** 2
+    J
     return (J,)
 
 
@@ -259,32 +258,37 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    The reactor force is applied at the base, at distance $\ell/2$ from the center of mass.
-    The component of the force perpendicular to the booster axis generates a torque:
+    **Calcul du couple.** Dans le repère du booster, le réacteur est situé à la base, en position $\mathbf{r} = (0,\, -\ell)$, et la force réacteur vaut $\mathbf{F}_{\text{body}} = f\,(-\sin\phi,\ \cos\phi)$.
 
-    $$\tau = f \cdot \frac{\ell}{2} \cdot \sin(\phi)$$
+    Le couple autour du centre de masse est la composante $z$ du produit vectoriel $\mathbf{r}\times\mathbf{F}$ :
 
-    Applying the rotational version of Newton's second law $J\ddot{\theta} = \tau$:
+    $$
+    \tau \;=\; r_x F_y - r_y F_x
+          \;=\; 0\cdot f\cos\phi \;-\; (-\ell)\cdot(-f\sin\phi)
+          \;=\; -\ell f \sin\phi.
+    $$
 
-    $$\ddot{\theta} = \frac{f \ell \sin(\phi)}{2J}$$
+    L'équation du mouvement angulaire $J\ddot\theta = \tau$ donne donc :
+
+    $$
+    \boxed{\;\ddot{\theta} = -\dfrac{\ell\, f}{J}\sin\phi\;}
+    $$
+
+    *Remarques :* si $\phi = 0$ (poussée alignée avec l'axe du booster), $\ddot\theta = 0$ — pas de couple, le tilt est conservé. Le signe est cohérent : $\phi > 0$ pousse la base vers la gauche, donc fait basculer le sommet vers la droite ($\theta$ diminue).
     """)
     return
 
 
 @app.cell
-def _(J, M, g, l, np):
-    # Verification: compute angular acceleration for a given force and angle
-    f_test   = M * g
-    phi_test = np.pi / 4
+def _(J, l, np):
 
-    tau        = f_test * (l / 2) * np.sin(phi_test)
-    theta_ddot = tau / J
+    def tilt_acceleration(f: float, phi: float):
+        return -l * f * np.sin(phi) / J
 
-    print(f"tau        = {tau:.4f} N·m")
-    print(f"theta_ddot = {theta_ddot:.4f} rad/s²")
+
     return
 
 
@@ -298,7 +302,6 @@ def _(mo):
     - $v_x =\dot{x}$, $v_y = \dot{y}$ the components of the booster center of mass velocity,
     - $\omega = \dot{\theta}$ the angular velocity of the booster.
 
-
     What is is dimension $n$ of the state space?
     What is the state $s \in \R^n$ of the booster dynamics?
     Provide the definition of the function $F : \mathbb{R}^{n + 2} \to \mathbb{R}^n$ such that the system evolves
@@ -311,17 +314,28 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    The state vector is:
-    $$s = (x, v_x, y, v_y, \theta, \omega) \in \mathbb{R}^6$$
+    **Réponse.** L'état est de dimension $n = 6$ :
 
-    So the dimension is $n = 6$.
+    $$
+    s = (x,\; v_x,\; y,\; v_y,\; \theta,\; \omega) \in \mathbb{R}^6
+    $$
 
-    The vector field $F(s, f, \phi)$ is:
+    et
 
-    $$\dot{s} = F(s, f, \phi) = \begin{pmatrix} v_x \\ -\frac{f}{M}\sin(\theta+\phi) \\ v_y \\ \frac{f}{M}\cos(\theta+\phi) - g \\ \omega \\ \frac{f \ell \sin\phi}{J} \end{pmatrix}$$
+    $$
+    F(s, f, \phi) =
+    \begin{pmatrix}
+    v_x \\
+    -\dfrac{f}{M}\sin(\theta + \phi) \\
+    v_y \\
+    \dfrac{f}{M}\cos(\theta + \phi) - g \\
+    \omega \\
+    -\dfrac{\ell\, f}{J}\sin(\phi)
+    \end{pmatrix}.
+    $$
     """)
     return
 
@@ -329,24 +343,12 @@ def _(mo):
 @app.cell
 def _(J, M, g, l, np):
     def F(s, f, phi):
-
         x, vx, y, vy, theta, omega = s
+        ax = -f * np.sin(theta + phi) / M
+        ay = f * np.cos(theta + phi) / M - g
+        alpha = -l * f * np.sin(phi) / J
+        return np.array([vx, ax, vy, ay, omega, alpha])
 
-        return np.array([
-
-            vx,
-
-            -(f / M) * np.sin(theta + phi),
-
-            vy,
-
-            (f / M) * np.cos(theta + phi) - g,
-
-            omega,
-
-            (f * l * np.sin(phi)) / J
-
-        ])
 
     return (F,)
 
@@ -386,7 +388,6 @@ def _(mo):
         plt.legend()
         return plt.gcf()
     free_fall_example()
-    ```
     """)
     return
 
@@ -394,38 +395,15 @@ def _(mo):
 @app.cell
 def _(F, sci):
     def redstart_solve(t_span, y0, f_phi):
-
-        def ode(t, s):
-
+        def rhs(t, s):
             f, phi = f_phi(t, s)
-
             return F(s, f, phi)
 
-    
-
         result = sci.solve_ivp(
-
-            ode,
-
-            t_span,
-
-            y0,
-
-            dense_output=True,
-
-            max_step=0.01
-
+            rhs, t_span, y0, dense_output=True, rtol=1e-8, atol=1e-10
         )
+        return result.sol
 
-    
-
-        def sol(t):
-
-            return result.sol(t)
-
-    
-
-        return sol
 
     return (redstart_solve,)
 
@@ -444,62 +422,52 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    In free fall with $y(0) = 10$, $\dot{y}(0) = 0$, $f = 0$:
+    **Solution analytique.** En chute libre, $\ddot{y} = -g$ d'où
 
-    $$y(t) = 10 - \frac{1}{2}g t^2 = 10 - \frac{t^2}{2}$$
+    $$
+    y(t) = y_0 - \tfrac{1}{2} g t^2 = 10 - \tfrac{1}{2} t^2.
+    $$
 
-    Setting $y(t^*) = \ell = 1$:
+    On cherche $t^\star$ tel que $y(t^\star) = \ell = 1$ :
 
-    $$t^* = \sqrt{2(10 - 1)} = \sqrt{18} = 3\sqrt{2} \approx 4.243 \text{ s}$$
+    $$
+    t^\star = \sqrt{\dfrac{2(y_0 - \ell)}{g}} = \sqrt{18} \approx 4.243\ \text{s}.
+    $$
     """)
     return
 
 
 @app.cell
-def _(l, np, plt, redstart_solve):
+def _(g, l, np, plt, redstart_solve):
     def free_fall_example():
-
         t_span = [0.0, 5.0]
-
         y0 = [0.0, 0.0, 10.0, 0.0, 0.0, 0.0]
 
         def f_phi(t, y):
-
             return np.array([0.0, 0.0])
 
         sol = redstart_solve(t_span, y0, f_phi)
-
         t = np.linspace(t_span[0], t_span[1], 1000)
-
         y_t = sol(t)[2]
-
-    
-
-        t_theory = np.sqrt(2 * (10.0 - l))
-
-    
+        t_star = np.sqrt(2 * (10.0 - l) / g)
 
         plt.figure()
-
         plt.plot(t, y_t, label=r"$y(t)$ (height in meters)")
-
         plt.plot(t, l * np.ones_like(t), color="grey", ls="--", label=r"$y=\ell$")
-
-        plt.axvline(t_theory, color="red", ls=":", label=f"$t^*={t_theory:.3f}$ s (theory)")
-
+        plt.axvline(
+            t_star,
+            color="red",
+            ls=":",
+            label=fr"$t^\star = \sqrt{{18}} \approx {t_star:.3f}$ s",
+        )
         plt.title("Free Fall")
-
         plt.xlabel("time $t$")
-
         plt.grid(True)
-
         plt.legend()
-
         return plt.gcf()
-
 
 
     free_fall_example()
@@ -517,6 +485,124 @@ def _(mo):
 
     Simulate the corresponding scenario, display graphically the results and check that your solution works as expected.
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Approche.** Avec $\theta \equiv 0$ et $\phi \equiv 0$, on a $\ddot{y} = f/M - g$.
+    On choisit donc une trajectoire $y(t)$ polynomiale qui satisfait les conditions
+    aux bords. Une cubique suffit pour interpoler $y(0), \dot{y}(0), y(T), \dot{y}(T)$
+    mais elle donne $f(0) < 0$ (non physique car $f \geq 0$).
+
+    On ajoute donc les contraintes $\ddot{y}(0) = -g$ (i.e. $f(0)=0$) et
+    $\ddot{y}(T) = 0$ (i.e. $f(T)=Mg$ : hover en fin de course), ce qui mène à un
+    polynôme de degré 5 — et $f$ reste positif sur tout l'intervalle.
+
+    On déduit alors la commande :
+    $$
+    f(t) = M\bigl(\ddot{y}(t) + g\bigr), \qquad \phi(t) = 0.
+    $$
+    """)
+    return
+
+
+@app.cell
+def _(M, g, l, np, plt, redstart_solve):
+    def controlled_landing_example():
+        # ===============================
+        # PARAMETERS
+        # ===============================
+        T = 5.0
+        t_span = [0.0, T]
+
+        # Initial conditions
+        y0 = [0.0, 0.0, 10.0, -2.0, 0.0, 0.0]
+
+        # ===============================
+        # TRAJECTORY DESIGN (Polynomial)
+        # ===============================
+        # y(t) = a0 + a1 t + ... + a5 t^5
+
+        a0, a1, a2 = 10.0, -2.0, -g / 2.0
+
+        A = np.array([
+            [T**3,      T**4,       T**5],
+            [3*T**2,    4*T**3,     5*T**4],
+            [6*T,       12*T**2,    20*T**3]
+        ])
+
+        b = np.array([
+            l - (a0 + a1*T + a2*T**2),
+            - (a1 + 2*a2*T),
+            - (2*a2)
+        ])
+
+        a3, a4, a5 = np.linalg.solve(A, b)
+
+        # ===============================
+        # CONTROL LAW
+        # ===============================
+        def y_ddot(t):
+            return 2*a2 + 6*a3*t + 12*a4*t**2 + 20*a5*t**3
+
+        def f_phi(t, s):
+            f = M * (y_ddot(t) + g)
+            return np.array([f, 0.0])
+
+        # ===============================
+        # SIMULATION
+        # ===============================
+        sol = redstart_solve(t_span, y0, f_phi)
+
+        t = np.linspace(*t_span, 1000)
+        states = sol(t)
+
+        y = states[2]
+        vy = states[3]
+        f_vals = np.array([f_phi(ti, None)[0] for ti in t])
+
+        # ===============================
+        # PLOTTING
+        # ===============================
+        fig, axes = plt.subplots(3, 1, figsize=(8, 9), sharex=True)
+
+        # Position
+        axes[0].plot(t, y, label="Height y(t)")
+        axes[0].axhline(l, linestyle="--", label="Ground target")
+        axes[0].set_ylabel("y (m)")
+        axes[0].set_title("Controlled Landing")
+        axes[0].legend()
+        axes[0].grid()
+
+        # Velocity
+        axes[1].plot(t, vy, label="Vertical velocity", linestyle="--")
+        axes[1].axhline(0)
+        axes[1].set_ylabel("vy (m/s)")
+        axes[1].legend()
+        axes[1].grid()
+
+        # Force
+        axes[2].plot(t, f_vals, label="Thrust f(t)")
+        axes[2].axhline(M*g, linestyle="--", label="Hover thrust (Mg)")
+        axes[2].set_ylabel("Force (N)")
+        axes[2].set_xlabel("Time (s)")
+        axes[2].legend()
+        axes[2].grid()
+
+        # ===============================
+        # FINAL RESULT
+        # ===============================
+        fig.suptitle(
+            f"Final state → y(T) = {y[-1]:.3f} m | vy(T) = {vy[-1]:.3f} m/s"
+        )
+
+        fig.tight_layout()
+        return fig
+
+
+    controlled_landing_example()
     return
 
 
@@ -595,6 +681,16 @@ def _(mo):
     return
 
 
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _():
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -644,6 +740,11 @@ def _(mo):
     )
     ```
     """)
+    return
+
+
+@app.cell
+def _():
     return
 
 
@@ -709,6 +810,72 @@ def _(mo):
 
     4. The "controlled landing" scenario (see above).
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## 🧩 Tilted Controlled Landing
+
+    On veut maintenant que la fusée démarre **inclinée** ($\theta(0) = \theta_0 \neq 0$) et **se redresse au cours de la descente** pour finir verticale au-dessus du pad ($\theta(T) \approx 0$ **et** $x(T) \approx 0$).
+
+    Avec seulement deux entrées $(f, \phi)$ on ne peut pas suivre indépendamment une trajectoire $\theta_\text{des}(t)$ *et* contrôler $x(t)$ (l'effort latéral et le couple sont liés via $\phi$). On utilise donc un **retour d'état** (state feedback) sur la dynamique latérale.
+
+    **Linéarisation autour du vol stationnaire** ($\theta=0$, $\phi=0$, $f=Mg$). Avec $\sin\alpha \approx \alpha$, $\cos\alpha \approx 1$ :
+
+    $$
+    \begin{aligned}
+    \ddot{x} &\approx -g\,(\theta + \phi),\\
+    \ddot{\theta} &\approx -\dfrac{\ell M g}{J}\,\phi.
+    \end{aligned}
+    $$
+
+    Avec l'état latéral $\xi = (x,\ \dot x,\ \theta,\ \omega)^\top$ et l'entrée $\phi$ :
+
+    $$
+    \dot\xi = A\xi + B\phi, \qquad
+    A = \begin{pmatrix} 0 & 1 & 0 & 0 \\ 0 & 0 & -g & 0 \\ 0 & 0 & 0 & 1 \\ 0 & 0 & 0 & 0 \end{pmatrix},\qquad
+    B = \begin{pmatrix} 0 \\ -g \\ 0 \\ -\ell M g / J \end{pmatrix}.
+    $$
+
+    **Loi de commande.** On place les pôles de $A - BK$ par `scipy.signal.place_poles` (pôles autour de $-1.2$) puis on applique $\phi = -K\xi$. Pour la composante verticale on garde la compensation :
+
+    $$
+    f = \dfrac{M(\ddot y_\text{des} + g)}{\cos(\theta + \phi)}.
+    $$
+
+    **Saturation.** Comme $\theta_0 = 30°$ est grand, $-K\xi$ peut dépasser $60°$ au démarrage. Au lieu de borner $|\phi|$ (qui ferait passer $\theta+\phi$ près de $\pi/2$ et exploser le $\cos$), on borne directement $|\theta + \phi| \leq 85°$ — la singularité est évitée et le contrôleur peut commander des $\phi$ plus grands sans risque.
+
+    Le gain $K$ est calculé une fois pour toutes au démarrage. Cette structure ramène $(x, \dot x, \theta, \omega) \to 0$ tout en suivant la trajectoire verticale planifiée.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## 🧩 Off-center Tilted Controlled Landing
+
+    Même contrôleur que ci-dessus (placement de pôles sur la dynamique latérale linéarisée), mais avec une condition initiale plus exigeante : la fusée démarre **à la fois inclinée ET décalée latéralement**.
+
+    $$
+    s(0) = (x_0,\ 0,\ 10,\ -2,\ \theta_0,\ 0), \quad x_0 = 2.5\ \text{m}, \quad \theta_0 = \pi/6.
+    $$
+
+    Le retour d'état $\phi = -K\,(x, \dot x, \theta, \omega)^\top$ pénalise les 4 états et les ramène simultanément vers zéro. À l'arrivée :
+
+    - la fusée est **recentrée** au-dessus du pad ($x(T)$ très proche de 0),
+    - elle est **verticale** ($\theta(T)$ proche de 0),
+    - la vitesse verticale est nulle ($\dot y(T) = 0$).
+
+    Le déplacement latéral $x$ est plus dur à amener à 0 que $\theta$ : la commande disponible $\phi$ agit *directement* sur le couple (rotation) mais *indirectement* sur $x$ — via $\theta$ qui pousse latéralement. Avec $T=5$ s on a juste assez de temps pour converger.
+    """)
+    return
+
+
+@app.cell
+def _():
     return
 
 
