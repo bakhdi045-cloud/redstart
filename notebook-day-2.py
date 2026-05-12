@@ -1227,23 +1227,22 @@ def _(mo):
 @app.cell
 def _(J, M, g, l, np):
     A = np.array([
-        [0,   1,   0,   0,  0,          0],
-        [0,   0,   0,   0, -g,          0],
-        [0,   0,   0,   1,  0,          0],
-        [0,   0,   0,   0,  0,          0],
-        [0,   0,   0,   0,  0,          1],
-        [0,   0,   0,   0,  0,          0],
-    ], dtype=float)
+        [0, 1, 0, 0,  0,           0],
+        [0, 0, 0, 0, -g,           0],
+        [0, 0, 0, 1,  0,           0],
+        [0, 0, 0, 0,  0,           0],
+        [0, 0, 0, 0,  0,           1],
+        [0, 0, 0, 0,  0,           0]
+    ])
 
     B = np.array([
-        [0,           0              ],
-        [0,          -g              ],
-        [0,           0              ],
-        [1/M,         0              ],
-        [0,           0              ],
-        [0,          -M*g*l/(2*J)   ],
-    ], dtype=float)
-
+        [0,       0            ],
+        [0,      -g            ],
+        [0,       0            ],
+        [1/M,     0            ],
+        [0,       0            ],
+        [0,      -M*g*l/(2*J)  ]
+    ])
     print("A =\n", A)
     print("\nB =\n", B)
     return A, B
@@ -1359,6 +1358,92 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### 🔓 Solution
+
+    On s'intéresse uniquement à la **dynamique latérale** : la position horizontale $x$,
+    l'inclinaison $\theta$ et leurs dérivées. On fixe $f = Mg$ (poussée constante qui
+    compense la gravité) et on contrôle le système uniquement avec $\Delta\phi$.
+
+    L'état réduit est :
+    $$
+    \Delta s_{lat} = (\Delta x,\; \Delta\dot{x},\; \Delta\theta,\; \Delta\dot{\theta}) \in \mathbb{R}^4
+    $$
+    avec l'unique entrée $\Delta\phi \in \mathbb{R}$.
+
+    En reprenant les équations linéarisées :
+    $$
+    \Delta\ddot{x} = -g(\Delta\theta + \Delta\phi), \qquad \Delta\ddot{\theta} = -\frac{Mg\ell}{2J}\,\Delta\phi
+    $$
+
+    on obtient le système réduit $\dot{\Delta s}_{lat} = A_{lat}\,\Delta s_{lat} + B_{lat}\,\Delta\phi$ avec :
+
+    $$
+    A_{lat} = \begin{bmatrix}
+    0 & 1 & 0 & 0 \\
+    0 & 0 & -g & 0 \\
+    0 & 0 & 0 & 1 \\
+    0 & 0 & 0 & 0
+    \end{bmatrix},
+    \qquad
+    B_{lat} = \begin{bmatrix}
+    0 \\ -g \\ 0 \\ -\dfrac{Mg\ell}{2J}
+    \end{bmatrix}
+    $$
+    """)
+    return
+
+
+@app.cell
+def _(J, M, g, l, np):
+    A_lat = np.array([
+                [0,  1,  0,  0],
+                [0,  0, -g,  0],
+                [0,  0,  0,  1],
+                [0,  0,  0,  0]
+            ])
+
+    B_lat = np.array([
+                [0],
+                [-g],
+                [0],
+                [-M * g * l / (2 * J)]
+            ])
+
+    def _():
+        def _():
+
+
+            n = A_lat.shape[0]
+            C_lat = np.hstack([np.linalg.matrix_power(A_lat, i) @ B_lat for i in range(n)])
+            rank = np.linalg.matrix_rank(C_lat)
+
+            print("Matrice de contrôlabilité :")
+            print(C_lat)
+            print(f"\nRang : {rank} / {n}")
+            return print(f"Système latéral contrôlable : {rank == n}")
+        return _()
+
+
+    _()
+    return (A_lat,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    La matrice de contrôlabilité est de rang $4$ (rang plein). Le sous-système latéral
+    est donc **contrôlable** : avec uniquement $\Delta\phi$, on peut piloter simultanément
+    la position horizontale $\Delta x$ **et** l'inclinaison $\Delta\theta$.
+
+    C'est ce sous-système réduit qu'on utilisera pour concevoir les contrôleurs
+    (placement de pôles et LQR) dans la suite.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Linear Model in Free Fall
 
     Make graphs of $x(t)$ and $\theta(t)$ for the linearized model when
@@ -1366,6 +1451,91 @@ def _(mo):
     - $\phi(t)=0$ at all times.
 
     What do you see? How do you explain it?
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 🔓 Solution
+
+    On simule le modèle linéarisé latéral $\dot{\Delta s} = A_{lat}\,\Delta s$
+    sans contrôle ($\Delta\phi = 0$), avec la condition initiale :
+
+    $$
+    \Delta x(0) = 0, \quad \Delta\dot{x}(0) = 0, \quad
+    \Delta\theta(0) = \frac{\pi}{4}, \quad \Delta\dot{\theta}(0) = 0
+    $$
+    """)
+    return
+
+
+@app.cell
+def _(A_lat, np, plt):
+    from scipy.integrate import solve_ivp
+
+    # Condition initiale
+    s0_lat = [0, 0, np.pi / 4, 0]  # [x, vx, theta, omega]
+
+    # Système linéarisé sans contrôle : phi = 0
+    def f_linearized(t, s):
+        return A_lat @ s  # B_lat * 0 = 0
+
+    t_span = [0, 20]
+    t_eval = np.linspace(0, 20, 1000)
+
+    sol = solve_ivp(f_linearized, t_span, s0_lat, t_eval=t_eval, dense_output=True)
+
+    # Graphes
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+    axes[0].plot(t_eval, sol.y[0], color="steelblue")
+    axes[0].set_title(r"Position horizontale $\Delta x(t)$")
+    axes[0].set_xlabel("Temps $t$ (s)")
+    axes[0].set_ylabel(r"$\Delta x$ (m)")
+    axes[0].grid(True)
+
+    axes[1].plot(t_eval, sol.y[2], color="tomato")
+    axes[1].axhline(np.pi / 4, color="grey", ls="--", label=r"$\theta(0) = \pi/4$")
+    axes[1].set_title(r"Inclinaison $\Delta\theta(t)$")
+    axes[1].set_xlabel("Temps $t$ (s)")
+    axes[1].set_ylabel(r"$\Delta\theta$ (rad)")
+    axes[1].grid(True)
+    axes[1].legend()
+
+    plt.tight_layout()
+    plt.show()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    **Observations :**
+
+    - $\Delta\theta(t)$ reste **constant** égal à $\pi/4$ : sans contrôle ($\Delta\phi = 0$),
+      aucune force ne corrige l'inclinaison.
+    - $\Delta x(t)$ **dérive en parabole** vers $-\infty$ : le booster incliné subit
+      une force horizontale constante $\Delta\ddot{x} = -g\,\Delta\theta = -g\pi/4$.
+
+    **Explication :**
+
+    Avec $\Delta\phi = 0$, les équations linéarisées donnent :
+
+    $$
+    \Delta\ddot{\theta} = 0 \implies \Delta\theta(t) = \frac{\pi}{4} = \text{constante}
+    $$
+
+    $$
+    \Delta\ddot{x} = -g\,\Delta\theta = -\frac{g\pi}{4} = \text{constante} \implies
+    \Delta x(t) = -\frac{g\pi}{8}\,t^2
+    $$
+
+    Ce résultat illustre parfaitement **l'instabilité du système en boucle ouverte** :
+    une perturbation initiale de $\theta$ se traduit par une dérive non bornée de $x$.
+    Il est donc indispensable de concevoir un **contrôleur** qui utilise $\Delta\phi$
+    pour corriger simultanément $\theta$ et $x$.
     """)
     return
 
