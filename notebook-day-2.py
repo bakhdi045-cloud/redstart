@@ -1136,48 +1136,42 @@ def _(mo):
     mo.md(r"""
     ### 🔓 Solution
 
-    Let
-    $f = Mg + \Delta f$,
-    $\phi = \Delta\phi$,
-    $\theta = \Delta\theta$
-    be small perturbations around the equilibrium.
-    Using first-order Taylor expansions
-    $\sin(\Delta\theta+\Delta\phi)\approx\Delta\theta+\Delta\phi$,
-    $\cos(\Delta\theta+\Delta\phi)\approx 1$,
-    $\sin(\Delta\phi)\approx\Delta\phi$, and neglecting products of small quantities,
-    the nonlinear equations of motion become:
-
-    **Translation — $x$ axis:**
-    $$
-    M\,\Delta\ddot x = -(Mg+\Delta f)\sin(\Delta\theta+\Delta\phi)
-    \approx -Mg(\Delta\theta+\Delta\phi)
-    $$
-
-    **Translation — $y$ axis:**
-    $$
-    M\,\Delta\ddot y = (Mg+\Delta f)\cos(\Delta\theta+\Delta\phi)-Mg
-    \approx \Delta f
-    $$
-
-    **Rotation:**
-    $$
-    J\,\Delta\ddot\theta = -\frac{f\ell}{2}\sin(\Delta\phi)
-    \approx -\frac{Mg\ell}{2}\,\Delta\phi
-    $$
-
-    Introducing $\Delta v_x=\Delta\dot x$, $\Delta v_y=\Delta\dot y$,
-    $\Delta\omega=\Delta\dot\theta$, the six first-order equations are:
+    À l'équilibre, on a $\theta^* = 0$, $\phi^* = 0$, $f^* = Mg$.
+    On introduit les petites perturbations :
 
     $$
-    \begin{aligned}
-    \Delta\dot x &= \Delta v_x \\
-    \Delta\dot v_x &= -g(\Delta\theta + \Delta\phi)\\
-    \Delta\dot y &= \Delta v_y \\
-    \Delta\dot v_y &= \frac{1}{M}\,\Delta f \\
-    \Delta\dot\theta &= \Delta\omega \\
-    \Delta\dot\omega &= -\frac{Mg\ell}{2J}\,\Delta\phi
-    \end{aligned}
+    \theta = \Delta\theta, \quad \phi = \Delta\phi, \quad f = Mg + \Delta f
     $$
+
+    Pour de petits angles, on utilise les approximations au premier ordre :
+
+    $$
+    \sin(\Delta\theta + \Delta\phi) \approx \Delta\theta + \Delta\phi, \qquad
+    \cos(\Delta\theta + \Delta\phi) \approx 1, \qquad
+    \sin(\Delta\phi) \approx \Delta\phi
+    $$
+
+    En substituant dans les équations du mouvement et en négligeant les termes d'ordre 2
+    (produits de perturbations), on obtient :
+
+    **Dynamique horizontale :**
+    $$
+    \Delta\ddot{x} = -g(\Delta\theta + \Delta\phi)
+    $$
+
+    **Dynamique verticale :**
+    $$
+    \Delta\ddot{y} = \frac{\Delta f}{M}
+    $$
+
+    **Dynamique angulaire :**
+    $$
+    \Delta\ddot{\theta} = -\frac{Mg\ell}{2J} \Delta\phi
+    $$
+
+    On remarque que $\Delta y$ est **découplé** de $\Delta x$ et $\Delta\theta$ :
+    il est contrôlé uniquement par $\Delta f$, tandis que la dynamique latérale
+    $(\Delta x, \Delta\theta)$ est contrôlée uniquement par $\Delta\phi$.
     """)
     return
 
@@ -1252,7 +1246,7 @@ def _(J, M, g, l, np):
 
     print("A =\n", A)
     print("\nB =\n", B)
-    return
+    return A, B
 
 
 @app.cell(hide_code=True)
@@ -1268,9 +1262,82 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### 🔓 Solution
+
+    Un système LTI $\dot{s} = As$ est asymptotiquement stable si et seulement si
+    toutes les valeurs propres de $A$ ont une **partie réelle strictement négative**.
+
+    On calcule les valeurs propres de $A$ :
+    """)
+    return
+
+
+@app.cell
+def _(A, np):
+    eigenvalues = np.linalg.eigvals(A)
+    print("Valeurs propres de A :", eigenvalues)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Toutes les valeurs propres de $A$ sont nulles :
+
+    $$\text{Spec}(A) = \{0, 0, 0, 0, 0, 0\}$$
+
+    L'équilibre n'est donc **pas asymptotiquement stable**. Le système est seulement
+    **marginalement stable** : sans contrôle, le booster ne revient pas à son équilibre
+    si on le perturbe — il dérive indéfiniment.
+
+    C'est précisément pour cela qu'il faut concevoir un **contrôleur** qui stabilise le système.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Controllability
 
     Is the linearized model controllable?
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 🔓 Solution
+
+    Un système $(A, B)$ est contrôlable si et seulement si la **matrice de contrôlabilité**
+    de Kalman est de rang plein :
+
+    $$
+    \mathcal{C} = \begin{bmatrix} B & AB & A^2B & \cdots & A^{n-1}B \end{bmatrix} \in \mathbb{R}^{n \times nm}
+    $$
+
+    Pour notre système, $n = 6$ et $m = 2$, donc $\mathcal{C} \in \mathbb{R}^{6 \times 12}$.
+    Le système est contrôlable si et seulement si $\text{rang}(\mathcal{C}) = 6$.
+    """)
+    return
+
+
+@app.cell
+def _(A, B, np):
+    C_mat = np.hstack([np.linalg.matrix_power(A, i) @ B for i in range(6)])
+    rank = np.linalg.matrix_rank(C_mat)
+    print("Rang de la matrice de contrôlabilité :", rank)
+    print("Système contrôlable :", rank == A.shape[0])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    La matrice de contrôlabilité est de rang $6$ (rang plein). Le système linéarisé est donc
+    **contrôlable** : il existe théoriquement une entrée $({\Delta f}, {\Delta \phi})$
+    capable d'amener l'état depuis n'importe quelle condition initiale vers l'équilibre.
     """)
     return
 
