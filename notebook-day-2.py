@@ -1411,8 +1411,8 @@ def _(J, M, g, l, np):
 
     def _():
         def _():
-
-
+        
+        
             n = A_lat.shape[0]
             C_lat = np.hstack([np.linalg.matrix_power(A_lat, i) @ B_lat for i in range(n)])
             rank = np.linalg.matrix_rank(C_lat)
@@ -1845,8 +1845,8 @@ def _(A_lat, B_lat, np, plt, solve_ivp):
 
         plt.suptitle("Contrôleur par placement de pôles $K_{pp}$")
         plt.tight_layout()
-        return plt.show()
-
+        plt.show()
+        return (K_pp,)
 
     _()
     return
@@ -2031,6 +2031,30 @@ def _(mo):
     ## 🧩 Validation
 
     Test the two control strategies (pole placement and optimal control) on the "true" (nonlinear) model with an animation. Check that both controllers achieve their goal; otherwise, go back to the drawing board and tweak the design parameters until they do!
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 🔓 Solution
+
+    On teste les deux contrôleurs sur le **modèle non-linéaire complet** via
+    `redstart_solve`. L'état complet est :
+
+    $$
+    (x, \dot{x}, y, \dot{y}, \theta, \dot{\theta}) = (0, 0, 10, -2, \pi/4, 0)
+    $$
+
+    La loi de commande est appliquée sur les 4 variables latérales :
+
+    $$
+    \phi(t) = -K \cdot (x(t),\; \dot{x}(t),\; \theta(t),\; \dot{\theta}(t)), \qquad f = Mg
+    $$
+
+    On vérifie que $\theta(t) \to 0$, $x(t) \to 0$, $|\theta| < \pi/2$
+    et $|\phi| < \pi/2$ sur le modèle réel.
     """)
     return
 

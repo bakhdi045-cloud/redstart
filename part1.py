@@ -1063,116 +1063,119 @@ def _(mo):
 
 @app.cell
 def _(J, K_oc, M, cos, g, l, mo, np, pi, sin, solve_ivp):
-    # Re-run nonlinear simulation for animation (shorter time, denser output)
-    def nonlinear_rhs_anim(t, state, K):
-        x_s, vx, y_s, vy, theta, omega = state
-        xi_lat = np.array([x_s, vx, theta, omega])
-        dphi   = np.clip(-(K @ xi_lat).item(), -pi/2+0.01, pi/2-0.01)
-        f      = M * g
-        return [vx, -(f/M)*sin(theta+dphi), vy,
-                (f/M)*cos(theta+dphi)-g, omega, -(f/J)*(l/2)*sin(dphi)]
+    def _():
+        # Re-run nonlinear simulation for animation (shorter time, denser output)
+        def nonlinear_rhs_anim(t, state, K):
+            x_s, vx, y_s, vy, theta, omega = state
+            xi_lat = np.array([x_s, vx, theta, omega])
+            dphi   = np.clip(-(K @ xi_lat).item(), -pi/2+0.01, pi/2-0.01)
+            f      = M * g
+            return [vx, -(f/M)*sin(theta+dphi), vy,
+                    (f/M)*cos(theta+dphi)-g, omega, -(f/J)*(l/2)*sin(dphi)]
 
-    x0_anim = [0.0, 0.0, 5.0, 0.0, pi/4, 0.0]
-    T_anim   = 25.0
-    N_frames = 60
-    t_frames = np.linspace(0, T_anim, N_frames)
+        x0_anim = [0.0, 0.0, 5.0, 0.0, pi/4, 0.0]
+        T_anim   = 25.0
+        N_frames = 60
+        t_frames = np.linspace(0, T_anim, N_frames)
 
-    sol_anim = solve_ivp(nonlinear_rhs_anim, (0, T_anim), x0_anim,
-                         args=(K_oc,), t_eval=t_frames,
-                         rtol=1e-8, atol=1e-10)
+        sol_anim = solve_ivp(nonlinear_rhs_anim, (0, T_anim), x0_anim,
+                             args=(K_oc,), t_eval=t_frames,
+                             rtol=1e-8, atol=1e-10)
 
-    # Extract trajectory
-    xs   = sol_anim.y[0]
-    ys   = sol_anim.y[2]
-    thetas = sol_anim.y[4]
+        # Extract trajectory
+        xs   = sol_anim.y[0]
+        ys   = sol_anim.y[2]
+        thetas = sol_anim.y[4]
 
-    # Build SVG keyframes animation
-    # World: x in [-4, 4], y in [0, 10], booster half-length = l/2 = 1
-    def world2svg(wx, wy, W=400, H=400, xrange=(-5,5), yrange=(0,11)):
-        px = (wx - xrange[0]) / (xrange[1]-xrange[0]) * W
-        py = H - (wy - yrange[0]) / (yrange[1]-yrange[0]) * H
-        return px, py
+        # Build SVG keyframes animation
+        # World: x in [-4, 4], y in [0, 10], booster half-length = l/2 = 1
+        def world2svg(wx, wy, W=400, H=400, xrange=(-5,5), yrange=(0,11)):
+            px = (wx - xrange[0]) / (xrange[1]-xrange[0]) * W
+            py = H - (wy - yrange[0]) / (yrange[1]-yrange[0]) * H
+            return px, py
 
-    W, H = 400, 400
+        W, H = 400, 400
 
-    # Pre-compute keyframe values for SVG SMIL animation
-    # We'll use a CSS animation approach with JS for simplicity
-    frames_data = []
-    for i in range(N_frames):
-        px, py = world2svg(xs[i], ys[i])
-        ang_deg = np.degrees(thetas[i])   # tilt angle (SVG rotate)
-        frames_data.append((px, py, ang_deg))
+        # Pre-compute keyframe values for SVG SMIL animation
+        # We'll use a CSS animation approach with JS for simplicity
+        frames_data = []
+        for i in range(N_frames):
+            px, py = world2svg(xs[i], ys[i])
+            ang_deg = np.degrees(thetas[i])   # tilt angle (SVG rotate)
+            frames_data.append((px, py, ang_deg))
 
-    # Build SVG with JavaScript animation
-    svg_anim = f"""
-    <svg width="420" height="430" xmlns="http://www.w3.org/2000/svg"
-         style="background:#e8f4f8; border-radius:8px;">
+        # Build SVG with JavaScript animation
+        svg_anim = f"""
+        <svg width="420" height="430" xmlns="http://www.w3.org/2000/svg"
+             style="background:#e8f4f8; border-radius:8px;">
 
-      <!-- sky gradient -->
-      <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#87CEEB"/>
-          <stop offset="100%" stop-color="#e0f0ff"/>
-        </linearGradient>
-        <linearGradient id="flame" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#ff4400"/>
-          <stop offset="100%" stop-color="#ffcc00" stop-opacity="0.3"/>
-        </linearGradient>
-      </defs>
+          <!-- sky gradient -->
+          <defs>
+            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#87CEEB"/>
+              <stop offset="100%" stop-color="#e0f0ff"/>
+            </linearGradient>
+            <linearGradient id="flame" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#ff4400"/>
+              <stop offset="100%" stop-color="#ffcc00" stop-opacity="0.3"/>
+            </linearGradient>
+          </defs>
 
-      <!-- background -->
-      <rect x="10" y="10" width="400" height="380" rx="6" fill="url(#sky)"/>
-      <!-- ground -->
-      <rect x="10" y="355" width="400" height="35" rx="3" fill="#7c9e6f"/>
-      <!-- landing pad -->
-      <rect x="175" y="353" width="70" height="8" rx="3" fill="#2a5c00" opacity="0.7"/>
-      <text x="210" y="362" text-anchor="middle" font-size="7" fill="white">TARGET</text>
+          <!-- background -->
+          <rect x="10" y="10" width="400" height="380" rx="6" fill="url(#sky)"/>
+          <!-- ground -->
+          <rect x="10" y="355" width="400" height="35" rx="3" fill="#7c9e6f"/>
+          <!-- landing pad -->
+          <rect x="175" y="353" width="70" height="8" rx="3" fill="#2a5c00" opacity="0.7"/>
+          <text x="210" y="362" text-anchor="middle" font-size="7" fill="white">TARGET</text>
 
-      <!-- world axes labels -->
-      <text x="14" y="25" font-size="9" fill="#555">y↑</text>
-      <text x="398" y="372" font-size="9" fill="#555">x→</text>
+          <!-- world axes labels -->
+          <text x="14" y="25" font-size="9" fill="#555">y↑</text>
+          <text x="398" y="372" font-size="9" fill="#555">x→</text>
 
-      <!-- booster group (animated by JS) -->
-      <g id="booster">
-        <!-- body -->
-        <rect id="body" x="-5" y="-20" width="10" height="40"
-              rx="3" fill="#1a1a2e" stroke="#aaa" stroke-width="1"/>
-        <!-- nose cone -->
-        <polygon id="nose" points="0,-26 -5,-18 5,-18"
-                 fill="#e63946"/>
-        <!-- flame (bottom of booster) -->
-        <polygon id="flame_shape" points="0,28 -4,20 4,20"
-                 fill="url(#flame)" opacity="0.9"/>
-      </g>
+          <!-- booster group (animated by JS) -->
+          <g id="booster">
+            <!-- body -->
+            <rect id="body" x="-5" y="-20" width="10" height="40"
+                  rx="3" fill="#1a1a2e" stroke="#aaa" stroke-width="1"/>
+            <!-- nose cone -->
+            <polygon id="nose" points="0,-26 -5,-18 5,-18"
+                     fill="#e63946"/>
+            <!-- flame (bottom of booster) -->
+            <polygon id="flame_shape" points="0,28 -4,20 4,20"
+                     fill="url(#flame)" opacity="0.9"/>
+          </g>
 
-      <!-- time label -->
-      <text id="tlabel" x="370" y="30" font-size="11"
-            fill="#333" text-anchor="end">t = 0.0 s</text>
+          <!-- time label -->
+          <text id="tlabel" x="370" y="30" font-size="11"
+                fill="#333" text-anchor="end">t = 0.0 s</text>
 
-      <script type="text/javascript">
-      <![CDATA[
-        const frames = {list(frames_data)};
-        const dt_ms  = {T_anim / N_frames * 1000:.0f};
-        let frame = 0;
-        const bg  = document.getElementById("booster");
-        const tl  = document.getElementById("tlabel");
-        const times_s = {list(np.round(t_frames, 2))};
+          <script type="text/javascript">
+          <![CDATA[
+            const frames = {list(frames_data)};
+            const dt_ms  = {T_anim / N_frames * 1000:.0f};
+            let frame = 0;
+            const bg  = document.getElementById("booster");
+            const tl  = document.getElementById("tlabel");
+            const times_s = {list(np.round(t_frames, 2))};
 
-        function step() {{
-          const [px, py, ang] = frames[frame];
-          bg.setAttribute("transform",
-            `translate(${{px.toFixed(1)}}, ${{py.toFixed(1)}}) rotate(${{ang.toFixed(2)}})`);
-          tl.textContent = "t = " + times_s[frame].toFixed(1) + " s";
-          frame = (frame + 1) % frames.length;
-          setTimeout(step, dt_ms);
-        }}
-        step();
-      ]]>
-      </script>
-    </svg>
-    """
+            function step() {{
+              const [px, py, ang] = frames[frame];
+              bg.setAttribute("transform",
+                `translate(${{px.toFixed(1)}}, ${{py.toFixed(1)}}) rotate(${{ang.toFixed(2)}})`);
+              tl.textContent = "t = " + times_s[frame].toFixed(1) + " s";
+              frame = (frame + 1) % frames.length;
+              setTimeout(step, dt_ms);
+            }}
+            step();
+          ]]>
+          </script>
+        </svg>
+        """
+        return mo.Html(svg_anim)
 
-    mo.Html(svg_anim)
+
+    _()
     return
 
 
