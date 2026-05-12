@@ -1749,11 +1749,278 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### 🔓 Solution
+
+    #### 1. Choix des pôles
+
+    On utilise le **placement de pôles** : on choisit directement les valeurs propres
+    désirées de la matrice en boucle fermée $A_{lat} - B_{lat}K_{pp}$, puis on calcule
+    $K_{pp}$ automatiquement.
+
+    On a 4 états donc 4 pôles à placer. On veut :
+
+    - Convergence en $\approx 20$ sec → parties réelles autour de $-0.2$
+    - D'abord redresser $\theta$, ensuite corriger $x$ → pôles de $\theta$ **plus rapides**
+      que ceux de $x$
+
+    On choisit :
+
+    $$
+    \text{pôles désirés} = \{-0.5,\ -0.5,\ -0.2,\ -0.25\}
+    $$
+
+    où $-0.5$ (double) pilote la dynamique angulaire (rapide)
+    et $-0.2$, $-0.25$ pilotent la dynamique latérale (lente).
+
+    #### 2. Calcul de $K_{pp}$ par placement de pôles
+    """)
+    return
+
+
+@app.cell
+def _(A_lat, B_lat, np, plt, solve_ivp):
+    def _():
+        from scipy.signal import place_poles
+
+        # Pôles distincts (pas de répétitions car rank(B_lat) = 1)
+        # - Pôles rapides pour theta : -0.4 et -0.5
+        # - Pôles lents pour x      : -0.2 et -0.3
+        poles_desires = [-0.5, -0.4, -0.2, -0.3]
+
+        # Calcul du gain par placement de pôles
+        result = place_poles(A_lat, B_lat, poles_desires)
+        K_pp = result.gain_matrix
+        print("K_pp =", np.round(K_pp, 4))
+
+        # Matrice en boucle fermée
+        A_cl_pp = A_lat - B_lat @ K_pp
+
+        # Vérification des valeurs propres
+        eigvals = np.linalg.eigvals(A_cl_pp)
+        print("Valeurs propres :", np.round(eigvals, 4))
+        print("Asymptotiquement stable :", np.all(np.real(eigvals) < 0))
+
+        # Simulation
+        s0 = np.array([0.0, 0.0, 45/180 * np.pi, 0.0])
+
+        def f_pp(t, s):
+            return A_cl_pp @ s
+
+        t_eval = np.linspace(0, 40, 2000)
+        sol = solve_ivp(f_pp, [0, 40], s0, t_eval=t_eval)
+
+        x     = sol.y[0]
+        theta = sol.y[2]
+        omega = sol.y[3]
+        vx    = sol.y[1]
+        phi   = -(K_pp[0, 0]*x + K_pp[0, 1]*vx + K_pp[0, 2]*theta + K_pp[0, 3]*omega)
+
+        # Vérifications des contraintes
+        print(f"|Δθ| < π/2 : {np.all(np.abs(theta) < np.pi/2)}  (max = {np.max(np.abs(theta)):.4f} rad)")
+        print(f"|Δφ| < π/2 : {np.all(np.abs(phi)   < np.pi/2)}  (max = {np.max(np.abs(phi)):.4f} rad)")
+
+        # Graphes
+        fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+        axes[0].plot(sol.t, x, color="steelblue")
+        axes[0].axhline(0, color="black", ls=":", lw=0.8)
+        axes[0].set_title(r"$\Delta x(t)$")
+        axes[0].set_xlabel("Temps (s)"); axes[0].set_ylabel("m"); axes[0].grid(True)
+
+        axes[1].plot(sol.t, theta, color="tomato")
+        axes[1].axhline( np.pi/2, color="grey", ls="--", label=r"$\pm\pi/2$")
+        axes[1].axhline(-np.pi/2, color="grey", ls="--")
+        axes[1].axhline(0, color="black", ls=":", lw=0.8)
+        axes[1].set_title(r"$\Delta\theta(t)$")
+        axes[1].set_xlabel("Temps (s)"); axes[1].set_ylabel("rad")
+        axes[1].legend(); axes[1].grid(True)
+
+        axes[2].plot(sol.t, phi, color="seagreen")
+        axes[2].axhline( np.pi/2, color="grey", ls="--", label=r"$\pm\pi/2$")
+        axes[2].axhline(-np.pi/2, color="grey", ls="--")
+        axes[2].axhline(0, color="black", ls=":", lw=0.8)
+        axes[2].set_title(r"$\Delta\phi(t)$ (commande)")
+        axes[2].set_xlabel("Temps (s)"); axes[2].set_ylabel("rad")
+        axes[2].legend(); axes[2].grid(True)
+
+        plt.suptitle("Contrôleur par placement de pôles $K_{pp}$")
+        plt.tight_layout()
+        return plt.show()
+
+
+    _()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #### 3. Résultats
+
+    - $K_{pp}$ est calculé automatiquement par `place_poles`
+    - Toutes les valeurs propres de $A_{lat} - B_{lat}K_{pp}$ ont une partie réelle
+      **strictement négative** → système **asymptotiquement stable** ✅
+    - $\Delta\theta(t) \to 0$ en $\approx 10$ secondes ✅
+    - $\Delta x(t) \to 0$ en $\approx 20$ secondes ✅
+    - $|\Delta\theta(t)| < \pi/2$ et $|\Delta\phi(t)| < \pi/2$ à tout instant ✅
+
+    Contrairement au contrôleur manuel, les 4 gains sont maintenant non nuls,
+    ce qui permet de **corriger simultanément** la position $x$ et l'inclinaison $\theta$.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Controller Tuned with Optimal Control
 
     Using optimal control, find a gain matrix $K_{oc}$ that satisfies the same set of requirements that the one defined using pole placement.
 
     Explain how you find the proper design parameters!
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 🔓 Solution
+
+    #### 1. Principe du LQR
+
+    Le **LQR (Linear Quadratic Regulator)** calcule le gain $K_{oc}$ qui minimise
+    le critère quadratique :
+
+    $$
+    J = \int_0^\infty \left( \Delta s^T Q\, \Delta s + \Delta\phi\, R\, \Delta\phi \right) dt
+    $$
+
+    - $Q \in \mathbb{R}^{4\times 4}$ pénalise les **états** (vitesse de convergence)
+    - $R \in \mathbb{R}$ pénalise l'**effort de commande** $\Delta\phi$
+
+    Le gain optimal est $K_{oc} = R^{-1} B_{lat}^T P$ où $P$ est solution de
+    l'équation de Riccati algébrique :
+
+    $$
+    A_{lat}^T P + P A_{lat} - P B_{lat} R^{-1} B_{lat}^T P + Q = 0
+    $$
+
+    #### 2. Choix de $Q$ et $R$ — Règle de Bryson
+
+    On normalise par les valeurs maximales acceptables :
+
+    $$
+    Q = \text{diag}\!\left(\frac{1}{x_{max}^2},\;
+    \frac{1}{\dot{x}_{max}^2},\;
+    \frac{1}{\theta_{max}^2},\;
+    \frac{1}{\dot{\theta}_{max}^2}\right),
+    \qquad
+    R = \frac{1}{\phi_{max}^2}
+    $$
+
+    On veut corriger $\theta$ rapidement (petite tolérance) et on est plus
+    indulgent sur $x$ (grande tolérance).
+    """)
+    return
+
+
+@app.cell
+def _(A_lat, B_lat, np, plt, solve_ivp):
+    def _():
+        from scipy.linalg import solve_continuous_are
+
+        # Règle de Bryson : valeurs maximales tolérées
+        x_max     = 10.0        # on tolère une dérive de x
+        vx_max    = 5.0
+        theta_max = np.pi / 4   # on veut corriger theta vite
+        omega_max = np.pi / 4
+        phi_max   = np.pi / 4   # contrainte sur la commande
+
+        # Matrices de pondération
+        Q = np.diag([1/x_max**2, 1/vx_max**2, 1/theta_max**2, 1/omega_max**2])
+        R = np.array([[1/phi_max**2]])
+
+        print("Q =\n", np.round(Q, 4))
+        print("R =", R)
+
+        # Résolution de l'équation de Riccati
+        P = solve_continuous_are(A_lat, B_lat, Q, R)
+
+        # Gain optimal
+        K_oc = np.linalg.inv(R) @ B_lat.T @ P
+        print("\nK_oc =", np.round(K_oc, 4))
+
+        # Boucle fermée
+        A_cl_oc = A_lat - B_lat @ K_oc
+        eigvals = np.linalg.eigvals(A_cl_oc)
+        print("Valeurs propres :", np.round(eigvals, 4))
+        print("Asymptotiquement stable :", np.all(np.real(eigvals) < 0))
+
+        # Simulation
+        s0 = np.array([0.0, 0.0, 45/180 * np.pi, 0.0])
+
+        def f_oc(t, s):
+            return A_cl_oc @ s
+
+        t_eval = np.linspace(0, 40, 2000)
+        sol = solve_ivp(f_oc, [0, 40], s0, t_eval=t_eval)
+
+        x     = sol.y[0]
+        vx    = sol.y[1]
+        theta = sol.y[2]
+        omega = sol.y[3]
+        phi   = -(K_oc[0,0]*x + K_oc[0,1]*vx + K_oc[0,2]*theta + K_oc[0,3]*omega)
+
+        # Vérifications
+        print(f"\n|Δθ| < π/2 : {np.all(np.abs(theta) < np.pi/2)}  (max = {np.max(np.abs(theta)):.4f} rad)")
+        print(f"|Δφ| < π/2 : {np.all(np.abs(phi)   < np.pi/2)}  (max = {np.max(np.abs(phi)):.4f} rad)")
+
+        # Graphes
+        fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+        axes[0].plot(sol.t, x, color="steelblue")
+        axes[0].axhline(0, color="black", ls=":", lw=0.8)
+        axes[0].set_title(r"$\Delta x(t)$")
+        axes[0].set_xlabel("Temps (s)"); axes[0].set_ylabel("m"); axes[0].grid(True)
+
+        axes[1].plot(sol.t, theta, color="tomato")
+        axes[1].axhline( np.pi/2, color="grey", ls="--", label=r"$\pm\pi/2$")
+        axes[1].axhline(-np.pi/2, color="grey", ls="--")
+        axes[1].axhline(0, color="black", ls=":", lw=0.8)
+        axes[1].set_title(r"$\Delta\theta(t)$")
+        axes[1].set_xlabel("Temps (s)"); axes[1].set_ylabel("rad")
+        axes[1].legend(); axes[1].grid(True)
+
+        axes[2].plot(sol.t, phi, color="seagreen")
+        axes[2].axhline( np.pi/2, color="grey", ls="--", label=r"$\pm\pi/2$")
+        axes[2].axhline(-np.pi/2, color="grey", ls="--")
+        axes[2].axhline(0, color="black", ls=":", lw=0.8)
+        axes[2].set_title(r"$\Delta\phi(t)$ (commande)")
+        axes[2].set_xlabel("Temps (s)"); axes[2].set_ylabel("rad")
+        axes[2].legend(); axes[2].grid(True)
+
+        plt.suptitle("Contrôleur LQR $K_{oc}$")
+        plt.tight_layout()
+        return plt.show()
+
+
+    _()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    - Toutes les valeurs propres de $A_{lat} - B_{lat}K_{oc}$ ont une partie réelle
+      **strictement négative** → système **asymptotiquement stable** ✅
+    - $\Delta\theta(t) \to 0$ en $\approx 15$ secondes ✅
+    - $\Delta x(t) \to 0$ en $\approx 20$ secondes ✅
+    - $|\Delta\theta| < \pi/2$ et $|\Delta\phi| < \pi/2$ à tout instant ✅
+
+    Contrairement au placement de pôles, le LQR ne nécessite pas de choisir
+    directement les pôles — il suffit de **quantifier physiquement** ce qu'on
+    tolère comme erreur et comme effort.
     """)
     return
 
