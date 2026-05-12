@@ -1425,7 +1425,7 @@ def _(J, M, g, l, np):
 
 
     _()
-    return (A_lat,)
+    return A_lat, B_lat
 
 
 @app.cell(hide_code=True)
@@ -1506,7 +1506,7 @@ def _(A_lat, np, plt):
 
     plt.tight_layout()
     plt.show()
-    return
+    return (solve_ivp,)
 
 
 @app.cell(hide_code=True)
@@ -1578,6 +1578,132 @@ def _(mo):
 
     Is your final closed-loop model asymptotically stable?
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 🔓 Solution
+
+    #### 1. Réflexion et choix des gains $k_3$ et $k_4$
+
+    On cherche $K = [0, 0, k_3, k_4]$. La loi de commande est
+    $\Delta\phi = -k_3\Delta\theta - k_4\Delta\omega$.
+    Puisque les deux premiers gains sont nuls, la dynamique de $\theta$
+    est complètement découplée de $x$.
+
+    D'après les équations linéarisées, en posant $\alpha = \frac{Mg\ell}{2J}$
+    (qui vaut $1.5$ avec $M=1$, $g=1$, $\ell=2$, $J=1/3$) :
+
+    $$
+    \Delta\ddot{\theta} = \frac{Mg\ell}{2J}\Delta\phi = \alpha(-k_3\Delta\theta - k_4\Delta\omega)
+    $$
+
+    L'équation caractéristique du sous-système angulaire est :
+
+    $$
+    s^2 + \alpha k_4 s + \alpha k_3 = 0
+    $$
+
+    Pour que $\Delta\theta$ converge vers $0$ en environ 20 secondes,
+    on veut une constante de temps $\tau \approx 4$ à $5$ secondes,
+    ce qui correspond à des pôles autour de $-0.2$ ou $-0.25$.
+    On vise par exemple le polynôme caractéristique :
+
+    $$
+    (s + 0.2)(s + 0.3) = s^2 + 0.5s + 0.06
+    $$
+
+    On identifie :
+
+    - $-\alpha k_4 = 0.5 \implies k_4 = -0.5/1.5 \approx -0.33$
+    - $-\alpha k_3 = 0.06 \implies k_3 = -0.06/1.5 = -0.04$
+
+    Avec $K = [0, 0, -0.04, -0.33]$, l'effort de commande initial sera
+    $\Delta\phi(0) = -(-0.04)(\pi/4) \approx 0.03$ rad,
+    ce qui respecte largement la contrainte $|\Delta\phi| < \pi/2$.
+
+    #### 2. Stabilité asymptotique du modèle en boucle fermée
+
+    Le modèle complet **n'est pas asymptotiquement stable**. Bien que le
+    sous-système angulaire soit stabilisé ($\Delta\theta \to 0$ et
+    $\Delta\omega \to 0$), la matrice en boucle fermée $A_{cl} = A_{lat} - B_{lat}K$
+    possède toujours deux valeurs propres nulles correspondant aux états
+    non contrôlés $\Delta x$ et $\Delta\dot{x}$ — qui dérivent.
+    """)
+    return
+
+
+@app.cell
+def _(A_lat, B_lat, J, M, g, l, np, plt, solve_ivp):
+    def _():
+        def _():
+            # Paramètre alpha = Mgl / (2J)
+            alpha = M * g * l / (2 * J)
+            print(f"alpha = {alpha}")  # 1.5
+
+            # Pôles désirés pour le sous-système angulaire
+            # (s + 0.2)(s + 0.3) = s^2 + 0.5s + 0.06
+            # => alpha*k4 = 0.5  et  alpha*k3 = 0.06
+            k4 = -0.5 / alpha
+            k3 = -0.06 / alpha
+            print(f"k3 = {k3:.4f}, k4 = {k4:.4f}")
+
+            K = np.array([[0, 0, k3, k4]])
+            A_cl = A_lat - B_lat @ K
+
+            # Valeurs propres en boucle fermée
+            eigenvalues = np.linalg.eigvals(A_cl)
+            print(f"Valeurs propres : {np.round(eigenvalues, 4)}")
+
+            # Simulation
+            s0 = np.array([0.0, 0.0, 45/180 * np.pi, 0.0])
+
+            def f_cl(t, s):
+                return A_cl @ s
+
+            t_eval = np.linspace(0, 40, 2000)
+            sol = solve_ivp(f_cl, [0, 40], s0, t_eval=t_eval)
+
+            theta = sol.y[2]
+            omega = sol.y[3]
+            phi   = -(k3 * theta + k4 * omega)
+
+            # Vérifications
+            print(f"|Δθ| < π/2 : {np.all(np.abs(theta) < np.pi/2)}  (max = {np.max(np.abs(theta)):.4f} rad)")
+            print(f"|Δφ| < π/2 : {np.all(np.abs(phi)   < np.pi/2)}  (max = {np.max(np.abs(phi)):.4f} rad)")
+
+            # Graphes
+            fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+            axes[0].plot(sol.t, sol.y[0], color="steelblue")
+            axes[0].set_title(r"$\Delta x(t)$ (dérive tolérée)")
+            axes[0].set_xlabel("Temps (s)"); axes[0].set_ylabel("m"); axes[0].grid(True)
+
+            axes[1].plot(sol.t, theta, color="tomato")
+            axes[1].axhline( np.pi/2, color="grey", ls="--", label=r"$\pm\pi/2$")
+            axes[1].axhline(-np.pi/2, color="grey", ls="--")
+            axes[1].axhline(0, color="black", ls=":", lw=0.8)
+            axes[1].set_title(r"$\Delta\theta(t)$")
+            axes[1].set_xlabel("Temps (s)"); axes[1].set_ylabel("rad")
+            axes[1].legend(); axes[1].grid(True)
+
+            axes[2].plot(sol.t, phi, color="seagreen")
+            axes[2].axhline( np.pi/2, color="grey", ls="--", label=r"$\pm\pi/2$")
+            axes[2].axhline(-np.pi/2, color="grey", ls="--")
+            axes[2].axhline(0, color="black", ls=":", lw=0.8)
+            axes[2].set_title(r"$\Delta\phi(t)$")
+            axes[2].set_xlabel("Temps (s)"); axes[2].set_ylabel("rad")
+            axes[2].legend(); axes[2].grid(True)
+
+            plt.suptitle(rf"Contrôleur manuel : $k_3={k3:.4f}$, $k_4={k4:.4f}$")
+            plt.tight_layout()
+            return plt.show()
+        return _()
+
+
+    _()
     return
 
 
