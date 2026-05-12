@@ -1087,10 +1087,97 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### 🔓 Solution
+
+    At equilibrium all time-derivatives vanish, so
+    $v_x = v_y = \omega = 0$ and
+
+    $$
+    \begin{cases}
+    0 = -f\sin(\theta+\phi) \\
+    0 = f\cos(\theta+\phi) - Mg \\
+    0 = -\dfrac{f\ell}{2J}\sin\phi
+    \end{cases}
+    $$
+
+    **From the third equation:** $\sin\phi = 0$, so $\phi_{eq} = 0$ (the only solution
+    in $(-\pi/2, \pi/2)$).
+
+    **Substituting $\phi=0$ into the first equation:** $\sin\theta = 0$, so $\theta_{eq} = 0$
+    (the only solution in $(-\pi/2, \pi/2)$).
+
+    **From the second equation:** $f_{eq} = Mg$.
+
+    **Conclusion:** for any position $(x_{eq}, y_{eq})$ the family of equilibria is
+
+    $$
+    \boxed{(x, v_x, y, v_y, \theta, \omega) = (x_{eq},\,0,\,y_{eq},\,0,\,0,\,0),
+    \qquad f = Mg,\quad \phi = 0.}
+    $$
+
+    The booster is upright, at rest, hovering with thrust equal to its weight.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Linearized Model
 
     Introduce the error variables $\Delta x$, $\Delta y$, $\Delta \theta$, and $\Delta f$ and $\Delta \phi$ of the state and input values with respect to the generic equilibrium configuration.
     What are the linear ordinary differential equations that govern (approximately) these variables in a neighbourhood of the equilibrium?
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 🔓 Solution
+
+    Let
+    $f = Mg + \Delta f$,
+    $\phi = \Delta\phi$,
+    $\theta = \Delta\theta$
+    be small perturbations around the equilibrium.
+    Using first-order Taylor expansions
+    $\sin(\Delta\theta+\Delta\phi)\approx\Delta\theta+\Delta\phi$,
+    $\cos(\Delta\theta+\Delta\phi)\approx 1$,
+    $\sin(\Delta\phi)\approx\Delta\phi$, and neglecting products of small quantities,
+    the nonlinear equations of motion become:
+
+    **Translation — $x$ axis:**
+    $$
+    M\,\Delta\ddot x = -(Mg+\Delta f)\sin(\Delta\theta+\Delta\phi)
+    \approx -Mg(\Delta\theta+\Delta\phi)
+    $$
+
+    **Translation — $y$ axis:**
+    $$
+    M\,\Delta\ddot y = (Mg+\Delta f)\cos(\Delta\theta+\Delta\phi)-Mg
+    \approx \Delta f
+    $$
+
+    **Rotation:**
+    $$
+    J\,\Delta\ddot\theta = -\frac{f\ell}{2}\sin(\Delta\phi)
+    \approx -\frac{Mg\ell}{2}\,\Delta\phi
+    $$
+
+    Introducing $\Delta v_x=\Delta\dot x$, $\Delta v_y=\Delta\dot y$,
+    $\Delta\omega=\Delta\dot\theta$, the six first-order equations are:
+
+    $$
+    \begin{aligned}
+    \Delta\dot x &= \Delta v_x \\
+    \Delta\dot v_x &= -g(\Delta\theta + \Delta\phi)\\
+    \Delta\dot y &= \Delta v_y \\
+    \Delta\dot v_y &= \frac{1}{M}\,\Delta f \\
+    \Delta\dot\theta &= \Delta\omega \\
+    \Delta\dot\omega &= -\frac{Mg\ell}{2J}\,\Delta\phi
+    \end{aligned}
+    $$
     """)
     return
 
@@ -1103,6 +1190,68 @@ def _(mo):
     1. What are the matrices $A$ and $B$ associated to this linear model in standard form?
     2. Define the corresponding NumPy arrays `A` and `B`.
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 🔓 Solution
+
+    The state vector is
+    $z = [\Delta x,\;\Delta v_x,\;\Delta y,\;\Delta v_y,\;\Delta\theta,\;\Delta\omega]^\top \in\mathbb{R}^6$
+    and the input vector is $u = [\Delta f,\;\Delta\phi]^\top\in\mathbb{R}^2$.
+
+    The system $\dot z = Az + Bu$ has:
+
+    $$
+    A = \begin{bmatrix}
+    0 & 1 & 0 & 0 & 0 & 0\\
+    0 & 0 & 0 & 0 & -g & 0\\
+    0 & 0 & 0 & 1 & 0 & 0\\
+    0 & 0 & 0 & 0 & 0 & 0\\
+    0 & 0 & 0 & 0 & 0 & 1\\
+    0 & 0 & 0 & 0 & 0 & 0
+    \end{bmatrix},
+    \qquad
+    B = \begin{bmatrix}
+    0 & 0\\
+    0 & -g\\
+    0 & 0\\
+    1/M & 0\\
+    0 & 0\\
+    0 & -\dfrac{Mg\ell}{2J}
+    \end{bmatrix}
+    $$
+
+    With the numerical values $g=1$, $M=1$, $\ell=2$, $J=1/3$:
+    $-Mg\ell/(2J) = -1\cdot1\cdot2/(2\cdot1/3) = -3$.
+    """)
+    return
+
+
+@app.cell
+def _(J, M, g, l, np):
+    A = np.array([
+        [0,   1,   0,   0,  0,          0],
+        [0,   0,   0,   0, -g,          0],
+        [0,   0,   0,   1,  0,          0],
+        [0,   0,   0,   0,  0,          0],
+        [0,   0,   0,   0,  0,          1],
+        [0,   0,   0,   0,  0,          0],
+    ], dtype=float)
+
+    B = np.array([
+        [0,           0              ],
+        [0,          -g              ],
+        [0,           0              ],
+        [1/M,         0              ],
+        [0,           0              ],
+        [0,          -M*g*l/(2*J)   ],
+    ], dtype=float)
+
+    print("A =\n", A)
+    print("\nB =\n", B)
     return
 
 
