@@ -467,7 +467,7 @@ def _(A_lat, np, pi, plt, solve_ivp):
     ax2.legend()
     ax2.grid(True)
     plt.tight_layout()
-    plt.savefig("/mnt/user-data/outputs/freefall.png", dpi=130)
+    plt.savefig("public/images/freefall.png", dpi=130)
     plt.show()
     return
 
@@ -588,53 +588,48 @@ def _(mo):
 
 @app.cell
 def _(A_lat, B_lat, eigvals, np, pi, plt, solve_ivp):
-    def _():
-        # ── Manual gain matrix ───────────────────────────────────────────
-        K_manual = np.array([[0.0, 0.0, -0.15, -0.6]])
+    # ── Manual gain matrix ───────────────────────────────────────────
+    K_manual = np.array([[0.0, 0.0, -0.15, -0.6]])
 
-        A_cl_manual = A_lat - B_lat @ K_manual
-        evals_manual = eigvals(A_cl_manual)
-        print("Closed-loop eigenvalues (manual):", evals_manual)
+    A_cl_manual = A_lat - B_lat @ K_manual
+    evals_manual = eigvals(A_cl_manual)
+    print("Closed-loop eigenvalues (manual):", evals_manual)
 
-        # Simulate
-        xi0 = np.array([0.0, 0.0, pi/4, 0.0])
-        t_span = (0.0, 30.0)
-        t_eval = np.linspace(0, 30, 3000)
+    # Simulate  (unique variable names to avoid Marimo cross-cell conflicts)
+    xi0_m    = np.array([0.0, 0.0, pi/4, 0.0])
+    t_span_m = (0.0, 30.0)
+    t_eval_m = np.linspace(0, 30, 3000)
 
-        def ode_manual(t, xi):
-            dphi = -(K_manual @ xi).item()
-            return A_lat @ xi + B_lat.ravel() * dphi
+    def ode_manual(t, xi):
+        dphi = -(K_manual @ xi).item()
+        return A_lat @ xi + B_lat.ravel() * dphi
 
-        sol_m = solve_ivp(ode_manual, t_span, xi0, t_eval=t_eval)
+    sol_m = solve_ivp(ode_manual, t_span_m, xi0_m, t_eval=t_eval_m)
 
-        phi_t_manual = -(K_manual @ sol_m.y).ravel()
+    phi_t_manual = -(K_manual @ sol_m.y).ravel()
 
-        fig_m, axes = plt.subplots(3, 1, figsize=(9, 7), sharex=True)
-        axes[0].plot(sol_m.t, sol_m.y[0], color="steelblue")
-        axes[0].set_ylabel(r"$\Delta x$ [m]"); axes[0].grid(True)
-        axes[0].set_title("Manual Controller – closed-loop response")
+    fig_m, axes_m = plt.subplots(3, 1, figsize=(9, 7), sharex=True)
+    axes_m[0].plot(sol_m.t, sol_m.y[0], color="steelblue")
+    axes_m[0].set_ylabel(r"$\Delta x$ [m]"); axes_m[0].grid(True)
+    axes_m[0].set_title("Manual Controller – closed-loop response")
 
-        axes[1].plot(sol_m.t, np.degrees(sol_m.y[2]), color="tomato")
-        axes[1].axhline(90, ls="--", lw=0.8, color="gray")
-        axes[1].axhline(-90, ls="--", lw=0.8, color="gray")
-        axes[1].set_ylabel(r"$\Delta\theta$ [°]"); axes[1].grid(True)
+    axes_m[1].plot(sol_m.t, np.degrees(sol_m.y[2]), color="tomato")
+    axes_m[1].axhline(90, ls="--", lw=0.8, color="gray")
+    axes_m[1].axhline(-90, ls="--", lw=0.8, color="gray")
+    axes_m[1].set_ylabel(r"$\Delta\theta$ [°]"); axes_m[1].grid(True)
 
-        axes[2].plot(sol_m.t, np.degrees(phi_t_manual), color="darkorange")
-        axes[2].axhline(90, ls="--", lw=0.8, color="gray")
-        axes[2].axhline(-90, ls="--", lw=0.8, color="gray")
-        axes[2].set_ylabel(r"$\Delta\phi$ [°]")
-        axes[2].set_xlabel("time [s]"); axes[2].grid(True)
+    axes_m[2].plot(sol_m.t, np.degrees(phi_t_manual), color="darkorange")
+    axes_m[2].axhline(90, ls="--", lw=0.8, color="gray")
+    axes_m[2].axhline(-90, ls="--", lw=0.8, color="gray")
+    axes_m[2].set_ylabel(r"$\Delta\phi$ [°]")
+    axes_m[2].set_xlabel("time [s]"); axes_m[2].grid(True)
 
-        plt.tight_layout()
-        plt.savefig("/mnt/user-data/outputs/manual_controller.png", dpi=130)
-        plt.show()
+    plt.tight_layout()
+    plt.show()
 
-        print(f"\nMax |Δθ|  = {np.max(np.abs(sol_m.y[2])):.3f} rad  (limit π/2 = {pi/2:.3f})")
-        return print(f"Max |Δφ|  = {np.max(np.abs(phi_t_manual)):.3f} rad  (limit π/2 = {pi/2:.3f})")
-
-
-    _()
-    return
+    print(f"\nMax |Δθ|  = {np.max(np.abs(sol_m.y[2])):.3f} rad  (limit π/2 = {pi/2:.3f})")
+    print(f"Max |Δφ|  = {np.max(np.abs(phi_t_manual)):.3f} rad  (limit π/2 = {pi/2:.3f})")
+    return evals_manual, K_manual
 
 
 @app.cell
@@ -734,36 +729,35 @@ def _(A_lat, B_lat, eigvals, np, pi, place_poles, plt, solve_ivp):
     print("K_pp =", K_pp)
     print("Closed-loop eigenvalues (pole placement):", np.round(evals_pp, 6))
 
-    # Simulate
-    xi0 = np.array([0.0, 0.0, pi/4, 0.0])
-    t_span = (0.0, 30.0)
-    t_eval = np.linspace(0, 30, 3000)
+    # Simulate  (unique names to avoid Marimo cross-cell conflicts)
+    xi0_pp    = np.array([0.0, 0.0, pi/4, 0.0])
+    t_span_pp = (0.0, 30.0)
+    t_eval_pp = np.linspace(0, 30, 3000)
 
     def ode_pp(t, xi):
         dphi = -(K_pp @ xi).item()
         return A_lat @ xi + B_lat.ravel() * dphi
 
-    sol_pp = solve_ivp(ode_pp, t_span, xi0, t_eval=t_eval)
+    sol_pp = solve_ivp(ode_pp, t_span_pp, xi0_pp, t_eval=t_eval_pp)
     phi_t_pp = -(K_pp @ sol_pp.y).ravel()
 
-    fig_pp, axes = plt.subplots(3, 1, figsize=(9, 7), sharex=True)
-    axes[0].plot(sol_pp.t, sol_pp.y[0], color="steelblue")
-    axes[0].set_ylabel(r"$\Delta x$ [m]"); axes[0].grid(True)
-    axes[0].set_title("Pole Placement Controller – closed-loop response")
+    fig_pp, axes_pp = plt.subplots(3, 1, figsize=(9, 7), sharex=True)
+    axes_pp[0].plot(sol_pp.t, sol_pp.y[0], color="steelblue")
+    axes_pp[0].set_ylabel(r"$\Delta x$ [m]"); axes_pp[0].grid(True)
+    axes_pp[0].set_title("Pole Placement Controller – closed-loop response")
 
-    axes[1].plot(sol_pp.t, np.degrees(sol_pp.y[2]), color="tomato")
-    axes[1].axhline(90, ls="--", lw=0.8, color="gray")
-    axes[1].axhline(-90, ls="--", lw=0.8, color="gray")
-    axes[1].set_ylabel(r"$\Delta\theta$ [°]"); axes[1].grid(True)
+    axes_pp[1].plot(sol_pp.t, np.degrees(sol_pp.y[2]), color="tomato")
+    axes_pp[1].axhline(90, ls="--", lw=0.8, color="gray")
+    axes_pp[1].axhline(-90, ls="--", lw=0.8, color="gray")
+    axes_pp[1].set_ylabel(r"$\Delta\theta$ [°]"); axes_pp[1].grid(True)
 
-    axes[2].plot(sol_pp.t, np.degrees(phi_t_pp), color="darkorange")
-    axes[2].axhline(90, ls="--", lw=0.8, color="gray")
-    axes[2].axhline(-90, ls="--", lw=0.8, color="gray")
-    axes[2].set_ylabel(r"$\Delta\phi$ [°]")
-    axes[2].set_xlabel("time [s]"); axes[2].grid(True)
+    axes_pp[2].plot(sol_pp.t, np.degrees(phi_t_pp), color="darkorange")
+    axes_pp[2].axhline(90, ls="--", lw=0.8, color="gray")
+    axes_pp[2].axhline(-90, ls="--", lw=0.8, color="gray")
+    axes_pp[2].set_ylabel(r"$\Delta\phi$ [°]")
+    axes_pp[2].set_xlabel("time [s]"); axes_pp[2].grid(True)
 
     plt.tight_layout()
-    plt.savefig("/mnt/user-data/outputs/pole_placement.png", dpi=130)
     plt.show()
 
     print(f"\nMax |Δθ|  = {np.max(np.abs(sol_pp.y[2])):.4f} rad  (limit {pi/2:.4f})")
@@ -850,24 +844,24 @@ def _(A_lat, B_lat, eigvals, np, pi, plt, solve_continuous_are, solve_ivp):
     sol_oc = solve_ivp(ode_oc, t_span, xi0, t_eval=t_eval)
     phi_t_oc = -(K_oc @ sol_oc.y).ravel()
 
-    fig_oc, axes = plt.subplots(3, 1, figsize=(9, 7), sharex=True)
-    axes[0].plot(sol_oc.t, sol_oc.y[0], color="steelblue", label="LQR")
-    axes[0].set_ylabel(r"$\Delta x$ [m]"); axes[0].grid(True)
-    axes[0].set_title("LQR / Optimal Controller – closed-loop response")
+    fig_oc, axes_oc = plt.subplots(3, 1, figsize=(9, 7), sharex=True)
+    axes_oc[0].plot(sol_oc.t, sol_oc.y[0], color="steelblue", label="LQR")
+    axes_oc[0].set_ylabel(r"$\Delta x$ [m]"); axes_oc[0].grid(True)
+    axes_oc[0].set_title("LQR / Optimal Controller – closed-loop response")
 
-    axes[1].plot(sol_oc.t, np.degrees(sol_oc.y[2]), color="tomato")
-    axes[1].axhline(90, ls="--", lw=0.8, color="gray")
-    axes[1].axhline(-90, ls="--", lw=0.8, color="gray")
-    axes[1].set_ylabel(r"$\Delta\theta$ [°]"); axes[1].grid(True)
+    axes_oc[1].plot(sol_oc.t, np.degrees(sol_oc.y[2]), color="tomato")
+    axes_oc[1].axhline(90, ls="--", lw=0.8, color="gray")
+    axes_oc[1].axhline(-90, ls="--", lw=0.8, color="gray")
+    axes_oc[1].set_ylabel(r"$\Delta\theta$ [°]"); axes_oc[1].grid(True)
 
-    axes[2].plot(sol_oc.t, np.degrees(phi_t_oc), color="darkorange")
-    axes[2].axhline(90, ls="--", lw=0.8, color="gray")
-    axes[2].axhline(-90, ls="--", lw=0.8, color="gray")
-    axes[2].set_ylabel(r"$\Delta\phi$ [°]")
-    axes[2].set_xlabel("time [s]"); axes[2].grid(True)
+    axes_oc[2].plot(sol_oc.t, np.degrees(phi_t_oc), color="darkorange")
+    axes_oc[2].axhline(90, ls="--", lw=0.8, color="gray")
+    axes_oc[2].axhline(-90, ls="--", lw=0.8, color="gray")
+    axes_oc[2].set_ylabel(r"$\Delta\phi$ [°]")
+    axes_oc[2].set_xlabel("time [s]"); axes_oc[2].grid(True)
 
     plt.tight_layout()
-    plt.savefig("/mnt/user-data/outputs/lqr_controller.png", dpi=130)
+    plt.savefig("public/images/lqr_controller.png", dpi=130)
     plt.show()
 
     print(f"\nMax |Δθ|  = {np.max(np.abs(sol_oc.y[2])):.4f} rad  (limit {pi/2:.4f})")
@@ -878,28 +872,28 @@ def _(A_lat, B_lat, eigvals, np, pi, plt, solve_continuous_are, solve_ivp):
 @app.cell
 def _(mo, np, phi_t_oc, phi_t_pp, plt, sol_oc, sol_pp):
     """Side-by-side comparison of pole-placement vs LQR."""
-    fig_cmp, axes = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
+    fig_cmp, axes_cmp = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
 
-    axes[0].plot(sol_pp.t, sol_pp.y[0],  label="Pole Placement", color="steelblue")
-    axes[0].plot(sol_oc.t, sol_oc.y[0],  label="LQR",            color="seagreen", ls="--")
-    axes[0].set_ylabel(r"$\Delta x$ [m]"); axes[0].grid(True); axes[0].legend()
-    axes[0].set_title("Comparison: Pole Placement vs LQR")
+    axes_cmp[0].plot(sol_pp.t, sol_pp.y[0],  label="Pole Placement", color="steelblue")
+    axes_cmp[0].plot(sol_oc.t, sol_oc.y[0],  label="LQR",            color="seagreen", ls="--")
+    axes_cmp[0].set_ylabel(r"$\Delta x$ [m]"); axes_cmp[0].grid(True); axes_cmp[0].legend()
+    axes_cmp[0].set_title("Comparison: Pole Placement vs LQR")
 
-    axes[1].plot(sol_pp.t, np.degrees(sol_pp.y[2]), color="tomato",   label="PP")
-    axes[1].plot(sol_oc.t, np.degrees(sol_oc.y[2]), color="coral", ls="--", label="LQR")
-    axes[1].axhline(90,  ls=":", lw=0.8, color="gray")
-    axes[1].axhline(-90, ls=":", lw=0.8, color="gray")
-    axes[1].set_ylabel(r"$\Delta\theta$ [°]"); axes[1].grid(True); axes[1].legend()
+    axes_cmp[1].plot(sol_pp.t, np.degrees(sol_pp.y[2]), color="tomato",   label="PP")
+    axes_cmp[1].plot(sol_oc.t, np.degrees(sol_oc.y[2]), color="coral", ls="--", label="LQR")
+    axes_cmp[1].axhline(90,  ls=":", lw=0.8, color="gray")
+    axes_cmp[1].axhline(-90, ls=":", lw=0.8, color="gray")
+    axes_cmp[1].set_ylabel(r"$\Delta\theta$ [°]"); axes_cmp[1].grid(True); axes_cmp[1].legend()
 
-    axes[2].plot(sol_pp.t, np.degrees(phi_t_pp), color="darkorange", label="PP")
-    axes[2].plot(sol_oc.t, np.degrees(phi_t_oc), color="gold", ls="--", label="LQR")
-    axes[2].axhline(90,  ls=":", lw=0.8, color="gray")
-    axes[2].axhline(-90, ls=":", lw=0.8, color="gray")
-    axes[2].set_ylabel(r"$\Delta\phi$ [°]")
-    axes[2].set_xlabel("time [s]"); axes[2].grid(True); axes[2].legend()
+    axes_cmp[2].plot(sol_pp.t, np.degrees(phi_t_pp), color="darkorange", label="PP")
+    axes_cmp[2].plot(sol_oc.t, np.degrees(phi_t_oc), color="gold", ls="--", label="LQR")
+    axes_cmp[2].axhline(90,  ls=":", lw=0.8, color="gray")
+    axes_cmp[2].axhline(-90, ls=":", lw=0.8, color="gray")
+    axes_cmp[2].set_ylabel(r"$\Delta\phi$ [°]")
+    axes_cmp[2].set_xlabel("time [s]"); axes_cmp[2].grid(True); axes_cmp[2].legend()
 
     plt.tight_layout()
-    plt.savefig("/mnt/user-data/outputs/comparison.png", dpi=130)
+    plt.savefig("public/images/comparison.png", dpi=130)
     plt.show()
     mo.md("*(Comparison figure saved)*")
     return
@@ -1008,7 +1002,7 @@ def _(J, K_oc, K_pp, M, cos, g, l, np, pi, plt, sin, solve_ivp):
         axes_nl[2, col].grid(True)
 
     plt.tight_layout()
-    plt.savefig("/mnt/user-data/outputs/nonlinear_validation.png", dpi=130)
+    plt.savefig("public/images/nonlinear_validation.png", dpi=130)
     plt.show()
     return sol_oc_nl, sol_pp_nl
 
