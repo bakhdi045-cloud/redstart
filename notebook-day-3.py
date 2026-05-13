@@ -2572,7 +2572,7 @@ def _(mo):
     mo.md(r"""
     ### 🔓 Solution
 
-    ## 🧩 Exact Linearization
+    ## 🧩 Exact Linearization(solution)
 
     L’objectif est de **choisir un nouveau système auxiliaire** avec entrée \( u = (u_1, u_2) \) tel que :
 
