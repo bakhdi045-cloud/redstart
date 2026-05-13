@@ -2400,33 +2400,6 @@ def _(mo):
 
     ---
 
-    ### 4️⃣ Résultat simplifié (clé du problème)
-
-    Après simplification (le but du design !), les termes en \(\dot{\theta}^2\) **se compensent** et on obtient :
-
-    \[
-    \boxed{
-    \ddot{h} =
-    \begin{bmatrix}
-    0 \\
-    - g
-    \end{bmatrix}
-    +
-    \frac{z}{M}
-    \begin{bmatrix}
-    \cos\theta \\
-    \sin\theta
-    \end{bmatrix}
-    +
-    \frac{v_2}{M}
-    \begin{bmatrix}
-    -\sin\theta \\
-    \cos\theta
-    \end{bmatrix}
-    }
-    \]
-
-    ---
 
     ### 🎯 Interprétation
 
@@ -2457,7 +2430,7 @@ def _(mo):
 
     On a déjà :
     \[
-    \ddot{h} =
+    \ddot{h}=
     \begin{bmatrix}
     0 \\
     - g
@@ -2665,20 +2638,6 @@ def _(mo):
     dans la base cartésienne.
 
     ---
-
-    ## 🎯 Conclusion
-
-    ✔ On a transformé un système **non linéaire complexe** en :
-
-    \[
-    \boxed{h^{(4)} = u}
-    \]
-
-    👉 C’est une **linéarisation exacte** (feedback linearization)
-
-    👉 Le système devient :
-    - complètement découplé
-    - équivalent à un **double intégrateur d’ordre 4**
     """)
     return
 
@@ -2690,6 +2649,74 @@ def _(mo):
 
     Implement a function `Tr` of `x, dx, y, dy, theta, dtheta, z, dz` that returns `h_x, h_y, dh_x, dh_y, d2h_x, d2h_y, d3h_x, d3h_y`.
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 🔓 Solution
+
+    We define the transformation
+    \[
+    T_r(x,\dot x,y,\dot y,\theta,\dot\theta,z,\dot z)
+    =
+    (h_x,h_y,\dot h_x,\dot h_y,\ddot h_x,\ddot h_y,h_x^{(3)},h_y^{(3)}).
+    \]
+
+    From the previous questions, we have
+    \[
+    h_x = x - \frac{\ell}{6}\sin\theta,
+    \qquad
+    h_y = y + \frac{\ell}{6}\cos\theta,
+    \]
+    \[
+    \dot h_x = \dot x - \frac{\ell}{6}\dot\theta\cos\theta,
+    \qquad
+    \dot h_y = \dot y - \frac{\ell}{6}\dot\theta\sin\theta,
+    \]
+    \[
+    \ddot h_x = -\frac{z}{M}\sin\theta,
+    \qquad
+    \ddot h_y = \frac{z}{M}\cos\theta - g,
+    \]
+    \[
+    h_x^{(3)} = -\frac{\dot z}{M}\sin\theta - \frac{z}{M}\dot\theta\cos\theta,
+    \qquad
+    h_y^{(3)} = \frac{\dot z}{M}\cos\theta - \frac{z}{M}\dot\theta\sin\theta.
+    \]
+
+    Therefore, the function `Tr` is implemented as follows:
+    """)
+    return
+
+
+@app.cell
+def _(M, g, l, np):
+    def Tr(x, dx, y, dy, theta, dtheta, z, dz):
+
+        hx = x - l / 6 * np.sin(theta)
+
+        hy = y + l / 6 * np.cos(theta)
+
+
+        dhx = dx - l / 6 * dtheta * np.cos(theta)
+
+        dhy = dy - l / 6 * dtheta * np.sin(theta)
+
+
+        d2hx = -(z / M) * np.sin(theta)
+
+        d2hy = (z / M) * np.cos(theta) - g
+
+
+        d3hx = -(dz / M) * np.sin(theta) - (z / M) * dtheta * np.cos(theta)
+
+        d3hy = (dz / M) * np.cos(theta) - (z / M) * dtheta * np.sin(theta)
+
+
+        return np.array([hx, hy, dhx, dhy, d2hx, d2hy, d3hx, d3hy])
+
     return
 
 
