@@ -2717,7 +2717,7 @@ def _(M, g, l, np):
 
         return np.array([hx, hy, dhx, dhy, d2hx, d2hy, d3hx, d3hy])
 
-    return
+    return (Tr,)
 
 
 @app.cell(hide_code=True)
@@ -2863,7 +2863,7 @@ def _(M, g, l, np):
 
         return np.array([x, dx, y, dy, theta, dtheta, z, dz])
 
-    return
+    return (Tinv,)
 
 
 @app.cell(hide_code=True)
@@ -2899,6 +2899,146 @@ def _(mo):
 
     that returns a function `fun` such that `fun(t)` is a value of `x, dx, y, dy, theta, dtheta, z, dz, f, phi` at time `t` that match the initial and final values provided as arguments to `compute`.
     """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 🔓 Solution
+
+    Since the exact linearization yields
+    \[
+    h^{(4)} = u,
+    \]
+    a natural idea is to design admissible trajectories by prescribing smooth trajectories for the output \(h\).
+
+    More precisely, we build two scalar functions \(h_x(t)\) and \(h_y(t)\) such that their values and their first three derivatives match the initial and final conditions.
+
+    To do so, we first convert the initial and final physical states
+    \[
+    (x,\dot x,y,\dot y,\theta,\dot\theta,z,\dot z)
+    \]
+    into the output coordinates
+    \[
+    (h_x,h_y,\dot h_x,\dot h_y,\ddot h_x,\ddot h_y,h_x^{(3)},h_y^{(3)})
+    \]
+    using the transformation \(T_r\).
+
+    Then, for each component \(h_x\) and \(h_y\), we construct a polynomial trajectory satisfying the 8 scalar boundary conditions:
+    value, first derivative, second derivative, and third derivative at both \(t=0\) and \(t=t_f\).
+
+    A polynomial of degree 7 is sufficient for that purpose.
+
+    Once \(h_x(t)\) and \(h_y(t)\) are known, we also know all their derivatives up to order 3, so we can reconstruct
+    \[
+    x,\dot x,y,\dot y,\theta,\dot\theta,z,\dot z
+    \]
+    at every time using the inverse transformation \(Tinv\).
+
+    Finally, the force amplitude \(f\) and the angle \(\phi\) can be recovered from the auxiliary variables and the booster equations.
+
+    Therefore, the function `compute(...)` returns a function `fun(t)` that provides a full admissible trajectory
+    \[
+    (x,\dot x,y,\dot y,\theta,\dot\theta,z,\dot z,f,\phi)
+    \]
+    connecting the prescribed initial and final states.
+    """)
+    return
+
+
+@app.cell
+def _(M, Tinv, Tr, g, np):
+    def compute(
+
+        x0, dx0, y0, dy0, theta0, dtheta0, z0, dz0,
+
+        xtf, dxtf, ytf, dytf, thetatf, dthetatf, ztf, dztf,
+
+        tf,
+
+    ):
+
+        r0 = Tr(x0, dx0, y0, dy0, theta0, dtheta0, z0, dz0)
+
+        rf = Tr(xtf, dxtf, ytf, dytf, thetatf, dthetatf, ztf, dztf)
+
+
+        def poly7_coeffs(p0, dp0, d2p0, d3p0, pf, dpf, d2pf, d3pf, tf):
+
+            A = np.array([
+
+                [1, 0, 0, 0, 0, 0, 0, 0],
+
+                [0, 1, 0, 0, 0, 0, 0, 0],
+
+                [0, 0, 2, 0, 0, 0, 0, 0],
+
+                [0, 0, 0, 6, 0, 0, 0, 0],
+
+                [1, tf, tf**2, tf**3, tf**4, tf**5, tf**6, tf**7],
+
+                [0, 1, 2*tf, 3*tf**2, 4*tf**3, 5*tf**4, 6*tf**5, 7*tf**6],
+
+                [0, 0, 2, 6*tf, 12*tf**2, 20*tf**3, 30*tf**4, 42*tf**5],
+
+                [0, 0, 0, 6, 24*tf, 60*tf**2, 120*tf**3, 210*tf**4],
+
+            ], dtype=float)
+
+
+            b = np.array([p0, dp0, d2p0, d3p0, pf, dpf, d2pf, d3pf], dtype=float)
+
+            return np.linalg.solve(A, b)
+
+
+        cx = poly7_coeffs(r0[0], r0[2], r0[4], r0[6], rf[0], rf[2], rf[4], rf[6], tf)
+
+        cy = poly7_coeffs(r0[1], r0[3], r0[5], r0[7], rf[1], rf[3], rf[5], rf[7], tf)
+
+
+        def eval_poly(c, t):
+
+            p = sum(c[k] * t**k for k in range(8))
+
+            dp = sum(k * c[k] * t**(k-1) for k in range(1, 8))
+
+            d2p = sum(k * (k-1) * c[k] * t**(k-2) for k in range(2, 8))
+
+            d3p = sum(k * (k-1) * (k-2) * c[k] * t**(k-3) for k in range(3, 8))
+
+            return p, dp, d2p, d3p
+
+
+        def fun(t):
+
+            hx, dhx, d2hx, d3hx = eval_poly(cx, t)
+
+            hy, dhy, d2hy, d3hy = eval_poly(cy, t)
+
+
+            x, dx, y, dy, theta, dtheta, z, dz = Tinv(
+
+                hx, hy, dhx, dhy, d2hx, d2hy, d3hx, d3hy
+
+            )
+
+
+            fx = M * (d2hx + 0.0)
+
+            fy = M * (d2hy + g)
+
+
+            f = np.sqrt(fx**2 + fy**2)
+
+            phi = np.arctan2(-fx, fy) - theta
+
+
+            return np.array([x, dx, y, dy, theta, dtheta, z, dz, f, phi])
+
+
+        return fun
+
     return
 
 
