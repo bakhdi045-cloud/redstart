@@ -2570,6 +2570,122 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### 🔓 Solution
+
+    ## 🧩 Exact Linearization
+
+    L’objectif est de **choisir un nouveau système auxiliaire** avec entrée \( u = (u_1, u_2) \) tel que :
+
+    \[
+    h^{(4)} = u
+    \]
+
+    ---
+
+    ### 🔹 Idée clé
+
+    On remarque que \( h^{(4)} \) est une combinaison linéaire de deux vecteurs :
+
+    \[
+    e_1 =
+    \begin{bmatrix}
+    \cos\theta \\
+    \sin\theta
+    \end{bmatrix}, \quad
+    e_2 =
+    \begin{bmatrix}
+    -\sin\theta \\
+    \cos\theta
+    \end{bmatrix}
+    \]
+
+    👉 Ces vecteurs forment une **base orthonormée tournante**.
+
+    Donc :
+    \[
+    h^{(4)} = a_1 e_1 + a_2 e_2
+    \]
+
+    avec :
+    \[
+    a_1 = \frac{1}{M}(\ddot{z} - z\dot{\theta}^2 - v_2\dot{\theta})
+    \]
+    \[
+    a_2 = \frac{1}{M}(2\dot{z}\dot{\theta} + z\ddot{\theta} + \dot{v}_2)
+    \]
+
+    ---
+
+    ### 🔹 Choix du nouveau système auxiliaire
+
+    On impose :
+    \[
+    a_1 = u_1, \quad a_2 = u_2
+    \]
+
+    Donc :
+
+    \[
+    \ddot{z} = M u_1 + z\dot{\theta}^2 + v_2\dot{\theta}
+    \]
+
+    \[
+    \dot{v}_2 = M u_2 - 2\dot{z}\dot{\theta} - z\ddot{\theta}
+    \]
+
+    ---
+
+    ### 🔹 Résultat final
+
+    Avec ce choix :
+
+    \[
+    \boxed{
+    h^{(4)} =
+    u_1
+    \begin{bmatrix}
+    \cos\theta \\
+    \sin\theta
+    \end{bmatrix}
+    +
+    u_2
+    \begin{bmatrix}
+    -\sin\theta \\
+    \cos\theta
+    \end{bmatrix}
+    }
+    \]
+
+    Or cette expression est simplement :
+
+    \[
+    h^{(4)} = u
+    \]
+
+    dans la base cartésienne.
+
+    ---
+
+    ## 🎯 Conclusion
+
+    ✔ On a transformé un système **non linéaire complexe** en :
+
+    \[
+    \boxed{h^{(4)} = u}
+    \]
+
+    👉 C’est une **linéarisation exacte** (feedback linearization)
+
+    👉 Le système devient :
+    - complètement découplé
+    - équivalent à un **double intégrateur d’ordre 4**
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 State to Derivatives of the Output
 
     Implement a function `Tr` of `x, dx, y, dy, theta, dtheta, z, dz` that returns `h_x, h_y, dh_x, dh_y, d2h_x, d2h_y, d3h_x, d3h_y`.
