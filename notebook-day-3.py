@@ -2370,7 +2370,15 @@ def _(mo):
     \ddot{y} - (\ell/6)\cos\theta \, \dot{\theta}^2 - (\ell/6)\sin\theta \, \ddot{\theta}
     \end{bmatrix}
     \]
+    Ou encore :
 
+    $$
+    \ddot h =
+    \begin{bmatrix}
+    -\dfrac{z}{M}\sin\theta \\
+    \dfrac{z}{M}\cos\theta - g
+    \end{bmatrix}
+    $$
     ---
 
     ### 3️⃣ Substitution avec la dynamique du booster
@@ -2425,103 +2433,54 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    mo.md(r"\"\"
     ### 🔓 Solution
-    ## 1️⃣ Calcul de \( h^{(3)} \) et \( h^{(4)} \)
 
-    On a déjà :
-    \[
-    \ddot{h}=
+    From the previous question, we have
+
+    $$
+    \ddot h =
     \begin{bmatrix}
-    0 \\
-    - g
+    -\dfrac{z}{M}\sin\theta \\
+    \dfrac{z}{M}\cos\theta - g
     \end{bmatrix}
-    +
-    \frac{z}{M}
-    \begin{bmatrix}
-    \cos\theta \\
-    \sin\theta
-    \end{bmatrix}
-    +
-    \frac{v_2}{M}
-    \begin{bmatrix}
-    -\sin\theta \\
-    \cos\theta
-    \end{bmatrix}
-    \]
+    $$
 
-    ---
+    Differentiating once more with respect to time, we obtain
 
-    ### 🔹 Troisième dérivée \( h^{(3)} \)
-
-    On dérive :
-
-    \[
-    h^{(3)} = \frac{d}{dt}(\ddot{h})
-    \]
-
-    \[
+    $$
     h^{(3)} =
-    \frac{\dot{z}}{M}
     \begin{bmatrix}
-    \cos\theta \\
-    \sin\theta
+    -\dfrac{\dot z}{M}\sin\theta - \dfrac{z}{M}\dot\theta\cos\theta \\
+    \dfrac{\dot z}{M}\cos\theta - \dfrac{z}{M}\dot\theta\sin\theta
     \end{bmatrix}
-    +
-    \frac{z}{M}
-    \begin{bmatrix}
-    -\sin\theta \dot{\theta} \\
-    \cos\theta \dot{\theta}
-    \end{bmatrix}
-    +
-    \frac{\dot{v}_2}{M}
-    \begin{bmatrix}
-    -\sin\theta \\
-    \cos\theta
-    \end{bmatrix}
-    +
-    \frac{v_2}{M}
-    \begin{bmatrix}
-    -\cos\theta \dot{\theta} \\
-    -\sin\theta \dot{\theta}
-    \end{bmatrix}
-    \]
+    $$
 
-    ---
+    Now, when the auxiliary system is on, we use
 
-    ### 🔹 Quatrième dérivée \( h^{(4)} \)
+    $$
+    \ddot z = v_1,
+    \qquad
+    z\ddot\theta = v_2
+    $$
 
-    On dérive encore :
+    Differentiating again, we get
 
-    \[
-    h^{(4)} = \frac{d}{dt}(h^{(3)})
-    \]
-
-    Après dérivation (et regroupement), on obtient une expression de la forme :
-
-    \[
+    $$
     h^{(4)} =
-    \frac{1}{M}
-    \Big[
-    (\ddot{z} - z\dot{\theta}^2 - v_2\dot{\theta})
     \begin{bmatrix}
-    \cos\theta \\
-    \sin\theta
+    \dfrac{-v_1 + z\dot\theta^2}{M}\sin\theta - \dfrac{2\dot z \dot\theta + v_2}{M}\cos\theta \\
+    \dfrac{v_1 - z\dot\theta^2}{M}\cos\theta - \dfrac{2\dot z \dot\theta + v_2}{M}\sin\theta
     \end{bmatrix}
-    +
-    (2\dot{z}\dot{\theta} + z\ddot{\theta} + \dot{v}_2)
-    \begin{bmatrix}
-    -\sin\theta \\
-    \cos\theta
-    \end{bmatrix}
-    \Big]
-    \]
+    $$
 
-    👉 Cette expression dépend bien de :
-    - \( \theta, \dot{\theta} \)
-    - \( z, \dot{z} \)
-    - \( v_2, \dot{v}_2 \)
+    Therefore,
 
-    ---
+    - $h^{(3)}$ depends on $\theta$, $\dot\theta$, $z$, $\dot z$, and the constants.
+    - $h^{(4)}$ depends on $\theta$, $\dot\theta$, $z$, $\dot z$, $v=(v_1,v_2)$, and the constants.
+
+    This is the key step toward exact linearization, because the new input $v$ now appears explicitly in the fourth derivative of the output.
+    "\"\")
     """)
     return
 
@@ -2545,7 +2504,7 @@ def _(mo):
     mo.md(r"""
     ### 🔓 Solution
 
-    ## 🧩 Exact Linearization(solution)
+    ## 🧩 Exact Linearization
 
     L’objectif est de **choisir un nouveau système auxiliaire** avec entrée \( u = (u_1, u_2) \) tel que :
 
