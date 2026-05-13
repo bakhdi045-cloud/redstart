@@ -2736,6 +2736,139 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### 🔓 Solution
+
+    We assume that \(z < 0\) at all times.
+
+    From the second derivative of the output, we have
+    \[
+    \ddot h_x = -\frac{z}{M}\sin\theta,
+    \qquad
+    \ddot h_y = \frac{z}{M}\cos\theta - g.
+    \]
+
+    Let us define
+    \[
+    a_x = \ddot h_x,
+    \qquad
+    a_y = \ddot h_y + g.
+    \]
+
+    Then
+    \[
+    a_x = -\frac{z}{M}\sin\theta,
+    \qquad
+    a_y = \frac{z}{M}\cos\theta.
+    \]
+
+    Hence,
+    \[
+    \sqrt{a_x^2 + a_y^2} = \frac{|z|}{M}.
+    \]
+
+    Since \(z < 0\), we obtain
+    \[
+    z = -M\sqrt{a_x^2 + a_y^2}.
+    \]
+
+    Moreover,
+    \[
+    \sin\theta = \frac{M a_x}{-z},
+    \qquad
+    \cos\theta = \frac{M a_y}{z}.
+    \]
+
+    Therefore, \(\theta\) can be recovered uniquely from
+    \[
+    \theta = \operatorname{atan2}(a_x,\,-a_y).
+    \]
+
+    Now, using the third derivative,
+    \[
+    h_x^{(3)} = -\frac{\dot z}{M}\sin\theta - \frac{z}{M}\dot\theta\cos\theta,
+    \qquad
+    h_y^{(3)} = \frac{\dot z}{M}\cos\theta - \frac{z}{M}\dot\theta\sin\theta,
+    \]
+    we recover \(\dot z\) and \(\dot\theta\) by solving the corresponding \(2 \times 2\) linear system.
+
+    Finally, from
+    \[
+    h_x = x - \frac{\ell}{6}\sin\theta,
+    \qquad
+    h_y = y + \frac{\ell}{6}\cos\theta,
+    \]
+    and
+    \[
+    \dot h_x = \dot x - \frac{\ell}{6}\dot\theta\cos\theta,
+    \qquad
+    \dot h_y = \dot y - \frac{\ell}{6}\dot\theta\sin\theta,
+    \]
+    we obtain
+    \[
+    x = h_x + \frac{\ell}{6}\sin\theta,
+    \qquad
+    y = h_y - \frac{\ell}{6}\cos\theta,
+    \]
+    \[
+    \dot x = \dot h_x + \frac{\ell}{6}\dot\theta\cos\theta,
+    \qquad
+    \dot y = \dot h_y + \frac{\ell}{6}\dot\theta\sin\theta.
+    \]
+
+    Therefore, the full state and auxiliary state can be uniquely reconstructed from
+    \[
+    (h,\dot h,\ddot h,h^{(3)}).
+    \]
+    """)
+    return
+
+
+@app.cell
+def _(M, g, l, np):
+    def Tinv(hx, hy, dhx, dhy, d2hx, d2hy, d3hx, d3hy):
+
+        ax = d2hx
+
+        ay = d2hy + g
+
+
+        z = -M * np.sqrt(ax**2 + ay**2)
+
+        theta = np.arctan2(ax, -ay)
+
+
+        A = np.array([
+
+            [-np.sin(theta), -z * np.cos(theta)],
+
+            [ np.cos(theta), -z * np.sin(theta)],
+
+        ]) / M
+
+        b = np.array([d3hx, d3hy])
+
+
+        dz, dtheta = np.linalg.solve(A, b)
+
+
+        x = hx + l / 6 * np.sin(theta)
+
+        y = hy - l / 6 * np.cos(theta)
+
+
+        dx = dhx + l / 6 * dtheta * np.cos(theta)
+
+        dy = dhy + l / 6 * dtheta * np.sin(theta)
+
+
+        return np.array([x, dx, y, dy, theta, dtheta, z, dz])
+
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Admissible Path Computation
 
     Implement a function
