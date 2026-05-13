@@ -2504,99 +2504,91 @@ def _(mo):
     mo.md(r"""
     ### 🔓 Solution
 
-    ## 🧩 Exact Linearization
-
-    L’objectif est de **choisir un nouveau système auxiliaire** avec entrée \( u = (u_1, u_2) \) tel que :
-
+    From the previous question, we have
     \[
-    h^{(4)} = u
-    \]
-
-    ---
-
-    ### 🔹 Idée clé
-
-    On remarque que \( h^{(4)} \) est une combinaison linéaire de deux vecteurs :
-
-    \[
-    e_1 =
-    \begin{bmatrix}
-    \cos\theta \\
-    \sin\theta
-    \end{bmatrix}, \quad
-    e_2 =
-    \begin{bmatrix}
-    -\sin\theta \\
-    \cos\theta
-    \end{bmatrix}
-    \]
-
-    👉 Ces vecteurs forment une **base orthonormée tournante**.
-
-    Donc :
-    \[
-    h^{(4)} = a_1 e_1 + a_2 e_2
-    \]
-
-    avec :
-    \[
-    a_1 = \frac{1}{M}(\ddot{z} - z\dot{\theta}^2 - v_2\dot{\theta})
-    \]
-    \[
-    a_2 = \frac{1}{M}(2\dot{z}\dot{\theta} + z\ddot{\theta} + \dot{v}_2)
-    \]
-
-    ---
-
-    ### 🔹 Choix du nouveau système auxiliaire
-
-    On impose :
-    \[
-    a_1 = u_1, \quad a_2 = u_2
-    \]
-
-    Donc :
-
-    \[
-    \ddot{z} = M u_1 + z\dot{\theta}^2 + v_2\dot{\theta}
-    \]
-
-    \[
-    \dot{v}_2 = M u_2 - 2\dot{z}\dot{\theta} - z\ddot{\theta}
-    \]
-
-    ---
-
-    ### 🔹 Résultat final
-
-    Avec ce choix :
-
-    \[
-    \boxed{
     h^{(4)} =
-    u_1
+    \frac{1}{M}
     \begin{bmatrix}
-    \cos\theta \\
-    \sin\theta
+    (-v_1 + z\dot\theta^2)\sin\theta - (2\dot z \dot\theta + v_2)\cos\theta \\
+    (v_1 - z\dot\theta^2)\cos\theta - (2\dot z \dot\theta + v_2)\sin\theta
+    \end{bmatrix}.
+    \]
+
+    We rewrite this expression as
+    \[
+    h^{(4)}
+    =
+    \frac{1}{M}
+    \begin{bmatrix}
+    -\sin\theta & -\cos\theta \\
+    \cos\theta & -\sin\theta
+    \end{bmatrix}
+    \begin{bmatrix}
+    v_1 \\
+    v_2
     \end{bmatrix}
     +
-    u_2
+    \frac{1}{M}
     \begin{bmatrix}
-    -\sin\theta \\
-    \cos\theta
-    \end{bmatrix}
-    }
+    z\dot\theta^2\sin\theta - 2\dot z \dot\theta \cos\theta \\
+    -z\dot\theta^2\cos\theta - 2\dot z \dot\theta \sin\theta
+    \end{bmatrix}.
     \]
 
-    Or cette expression est simplement :
-
+    Let
     \[
-    h^{(4)} = u
+    A(\theta) =
+    \begin{bmatrix}
+    -\sin\theta & -\cos\theta \\
+    \cos\theta & -\sin\theta
+    \end{bmatrix}.
     \]
 
-    dans la base cartésienne.
+    Its determinant is
+    \[
+    \det(A(\theta)) = \sin^2\theta + \cos^2\theta = 1,
+    \]
+    so \(A(\theta)\) is invertible for every value of \(\theta\).
 
-    ---
+    Therefore, for any new input
+    \[
+    u =
+    \begin{bmatrix}
+    u_1 \\
+    u_2
+    \end{bmatrix},
+    \]
+    we can choose \(v=(v_1,v_2)\) so that
+    \[
+    h^{(4)} = u.
+    \]
+
+    A convenient choice is
+    \[
+    v_1 = z\dot\theta^2 + M(-u_1\sin\theta + u_2\cos\theta),
+    \]
+    \[
+    v_2 = -2\dot z \dot\theta - M(u_1\cos\theta + u_2\sin\theta).
+    \]
+
+    Substituting these expressions into the formula of \(h^{(4)}\) gives
+    \[
+    h^{(4)} =
+    \begin{bmatrix}
+    u_1 \\
+    u_2
+    \end{bmatrix}
+    = u.
+    \]
+
+    Hence, with this new auxiliary input \(u\), the nonlinear system is exactly transformed into
+    \[
+    h_x^{(4)} = u_1,
+    \qquad
+    h_y^{(4)} = u_2.
+    \]
+
+    This is exactly the desired exact linearization.
     """)
     return
 
@@ -3014,6 +3006,17 @@ def _(mo):
 
     Make the graph of the relevant variables as a function of time, then make an animation out of the same result. Comment and iterate if necessary!
     """)
+    return
+
+
+@app.cell
+def _():
+    return
+
+
+@app.cell
+def _(fig, html_anim, mo):
+    mo.vstack([mo.as_html(fig), html_anim])
     return
 
 
