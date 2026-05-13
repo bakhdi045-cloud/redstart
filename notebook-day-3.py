@@ -2990,7 +2990,7 @@ def _(M, Tinv, Tr, g, np):
 
         return fun
 
-    return
+    return (compute,)
 
 
 @app.cell(hide_code=True)
@@ -3010,13 +3010,54 @@ def _(mo):
 
 
 @app.cell
-def _():
-    return
+def _(M, booster_anim, compute, g, l, mo, np, plt, world):
+    # Initial & final states
+    x_0, dx_0, y_0, dy_0, theta_0, dtheta_0, z_0, dz_0 = (5.0, 0.0, 20.0, -1.0, -np.pi/8, 0.0, -M*g, 0.0)
+    x_tf, dx_tf, y_tf, dy_tf, theta_tf, dtheta_tf, z_tf, dz_tf = (0.0, 0.0, 2/3*l, 0.0, 0.0, 0.0, -M*g, 0.0)
+    tf = 10.0
+
+    # Compute trajectory
+    fun = compute(
+        x_0, dx_0, y_0, dy_0, theta_0, dtheta_0, z_0, dz_0,
+        x_tf, dx_tf, y_tf, dy_tf, theta_tf, dtheta_tf, z_tf, dz_tf,
+        tf
+    )
+
+    t_eval = np.linspace(0, tf, 500)
+    res = np.array([fun(t) for t in t_eval])
+
+    x_vals, dx_vals, y_vals, dy_vals, theta_vals, dtheta_vals, z_vals, dz_vals, f_vals, phi_vals = res.T
+
+    # Generate graphs
+    fig, axs = plt.subplots(5, 2, figsize=(12, 16))
+    variables = ['x', 'dx', 'y', 'dy', 'theta', 'dtheta', 'z', 'dz', 'f', 'phi']
+    for _i, ax in enumerate(axs.flat):
+        ax.plot(t_eval, res[:, _i])
+        ax.set_title(f'Evolution of {variables[_i]}')
+        ax.set_xlabel('Time (s)')
+        ax.grid(True)
+    fig.tight_layout()
+
+    # Define animation callbacks
+    def x_anim(t): return fun(t)[0]
+    def y_anim(t): return fun(t)[2]
+    def theta_anim(t): return fun(t)[4]
+    def f_anim(t): return fun(t)[8]
+    def phi_anim(t): return fun(t)[9]
+
+    anim = booster_anim(x_anim, y_anim, theta_anim, f_anim, phi_anim, T=tf)
+    html_anim = mo.Html(world([-2, 8, -2, 22], anim)).center()
+    return fig, html_anim
 
 
 @app.cell
 def _(fig, html_anim, mo):
     mo.vstack([mo.as_html(fig), html_anim])
+    return
+
+
+@app.cell
+def _():
     return
 
 
