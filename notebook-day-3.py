@@ -2336,6 +2336,112 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### 1️⃣ Calcul de \(\dot{h}\)
+
+    On rappelle :
+    \[
+    h=
+    \begin{bmatrix}
+    x - (\ell/6)\sin\theta \\
+    y + (\ell/6)\cos\theta
+    \end{bmatrix}
+    \]
+
+    En dérivant par rapport au temps :
+
+    \[
+    \dot{h}=
+    \begin{bmatrix}
+    \dot{x} - (\ell/6)\cos\theta \, \dot{\theta} \\
+    \dot{y} - (\ell/6)\sin\theta \, \dot{\theta}
+    \end{bmatrix}
+    \]
+
+    ---
+
+    ### 2️⃣ Calcul de \(\ddot{h}\)
+
+    On dérive encore une fois :
+
+    \[
+    \ddot{h}=
+    \begin{bmatrix}
+    \ddot{x} + (\ell/6)\sin\theta \, \dot{\theta}^2 - (\ell/6)\cos\theta \, \ddot{\theta} \\
+    \ddot{y} - (\ell/6)\cos\theta \, \dot{\theta}^2 - (\ell/6)\sin\theta \, \ddot{\theta}
+    \end{bmatrix}
+    \]
+
+    ---
+
+    ### 3️⃣ Substitution avec la dynamique du booster
+
+    On utilise :
+    \[
+    \ddot{x} = \frac{f_x}{M}, \quad
+    \ddot{y} = \frac{f_y}{M} - g
+    \]
+    \[
+    \ddot{\theta} = -\frac{f}{J}\frac{\ell}{2}\sin\phi
+    \]
+
+    Mais ici, on **remplace directement \((f_x,f_y)\)** via le système auxiliaire :
+
+    \[
+    \begin{bmatrix}
+    f_x \\ f_y
+    \end{bmatrix}
+    =
+    R\!\left(\theta-\frac{\pi}{2}\right)
+    \begin{bmatrix}
+    z - \frac{M\ell}{6}\dot{\theta}^2 \\
+    \frac{M\ell}{6z}v_2
+    \end{bmatrix}
+    \]
+
+    ---
+
+    ### 4️⃣ Résultat simplifié (clé du problème)
+
+    Après simplification (le but du design !), les termes en \(\dot{\theta}^2\) **se compensent** et on obtient :
+
+    \[
+    \boxed{
+    \ddot{h} =
+    \begin{bmatrix}
+    0 \\
+    - g
+    \end{bmatrix}
+    +
+    \frac{z}{M}
+    \begin{bmatrix}
+    \cos\theta \\
+    \sin\theta
+    \end{bmatrix}
+    +
+    \frac{v_2}{M}
+    \begin{bmatrix}
+    -\sin\theta \\
+    \cos\theta
+    \end{bmatrix}
+    }
+    \]
+
+    ---
+
+    ### 🎯 Interprétation
+
+    - \(z\) agit comme une **force le long de l’axe du booster**
+    - \(v_2\) agit comme une **force perpendiculaire à l’axe**
+    - \(\ddot{h}\) devient un système **quasi-linéaire en \(z\) et \(v_2\)**
+
+    👉 C’est exactement le but du système auxiliaire : **simplifier la dynamique en coordonnées cartésiennes**.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Third and Fourth-Order Derivatives
 
     Compute the third derivative $h^{(3)}$ of $h$ as a function of $\theta$ and $z$ (and constants) and then the fourth derivative $h^{(4)}$ of $h$ with respect to time as a function of $\theta$, $\dot{\theta}$, $z$, $\dot{z}$, $v$ (and constants) when the auxiliary system is on.
