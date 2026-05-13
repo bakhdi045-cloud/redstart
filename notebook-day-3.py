@@ -2452,6 +2452,110 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### 🔓 Solution
+    ## 1️⃣ Calcul de \( h^{(3)} \) et \( h^{(4)} \)
+
+    On a déjà :
+    \[
+    \ddot{h} =
+    \begin{bmatrix}
+    0 \\
+    - g
+    \end{bmatrix}
+    +
+    \frac{z}{M}
+    \begin{bmatrix}
+    \cos\theta \\
+    \sin\theta
+    \end{bmatrix}
+    +
+    \frac{v_2}{M}
+    \begin{bmatrix}
+    -\sin\theta \\
+    \cos\theta
+    \end{bmatrix}
+    \]
+
+    ---
+
+    ### 🔹 Troisième dérivée \( h^{(3)} \)
+
+    On dérive :
+
+    \[
+    h^{(3)} = \frac{d}{dt}(\ddot{h})
+    \]
+
+    \[
+    h^{(3)} =
+    \frac{\dot{z}}{M}
+    \begin{bmatrix}
+    \cos\theta \\
+    \sin\theta
+    \end{bmatrix}
+    +
+    \frac{z}{M}
+    \begin{bmatrix}
+    -\sin\theta \dot{\theta} \\
+    \cos\theta \dot{\theta}
+    \end{bmatrix}
+    +
+    \frac{\dot{v}_2}{M}
+    \begin{bmatrix}
+    -\sin\theta \\
+    \cos\theta
+    \end{bmatrix}
+    +
+    \frac{v_2}{M}
+    \begin{bmatrix}
+    -\cos\theta \dot{\theta} \\
+    -\sin\theta \dot{\theta}
+    \end{bmatrix}
+    \]
+
+    ---
+
+    ### 🔹 Quatrième dérivée \( h^{(4)} \)
+
+    On dérive encore :
+
+    \[
+    h^{(4)} = \frac{d}{dt}(h^{(3)})
+    \]
+
+    Après dérivation (et regroupement), on obtient une expression de la forme :
+
+    \[
+    h^{(4)} =
+    \frac{1}{M}
+    \Big[
+    (\ddot{z} - z\dot{\theta}^2 - v_2\dot{\theta})
+    \begin{bmatrix}
+    \cos\theta \\
+    \sin\theta
+    \end{bmatrix}
+    +
+    (2\dot{z}\dot{\theta} + z\ddot{\theta} + \dot{v}_2)
+    \begin{bmatrix}
+    -\sin\theta \\
+    \cos\theta
+    \end{bmatrix}
+    \Big]
+    \]
+
+    👉 Cette expression dépend bien de :
+    - \( \theta, \dot{\theta} \)
+    - \( z, \dot{z} \)
+    - \( v_2, \dot{v}_2 \)
+
+    ---
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Exact Linearization
 
     Show that with yet another auxiliary system with input $u=(u_1, u_2)$ and output $v$ fed into the previous one, we can achieve the dynamics
