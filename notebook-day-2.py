@@ -1846,10 +1846,10 @@ def _(A_lat, B_lat, np, plt, solve_ivp):
         plt.suptitle("Contrôleur par placement de pôles $K_{pp}$")
         plt.tight_layout()
         plt.show()
-        return (K_pp,)
+        return K_pp,
 
-    _()
-    return
+    K_pp, = _()
+    return K_pp,
 
 
 @app.cell(hide_code=True)
@@ -2002,11 +2002,12 @@ def _(A_lat, B_lat, np, plt, solve_ivp):
 
         plt.suptitle("Contrôleur LQR $K_{oc}$")
         plt.tight_layout()
-        return plt.show()
+        plt.show()
+        return K_oc,
 
 
-    _()
-    return
+    K_oc, = _()
+    return K_oc,
 
 
 @app.cell(hide_code=True)
@@ -2181,8 +2182,8 @@ def _(K_oc, K_pp, mo, np, sol_oc_nl, sol_pp_nl):
 
     | Criterion | Pole Placement | LQR |
     |-----------|:--------------:|:---:|
-    | $|\\Delta\\theta|<\\np.pi/2$ at all times | {('✅' if r_pp[0] else '❌')} | {('✅' if r_oc[0] else '❌')} |
-    | $|\\Delta\\phi|<\\np.pi/2$ at all times   | {('✅' if r_pp[1] else '❌')} | {('✅' if r_oc[1] else '❌')} |
+    | $|\\Delta\\theta|<\\pi/2$ at all times | {('✅' if r_pp[0] else '❌')} | {('✅' if r_oc[0] else '❌')} |
+    | $|\\Delta\\phi|<\\pi/2$ at all times   | {('✅' if r_pp[1] else '❌')} | {('✅' if r_oc[1] else '❌')} |
     | $\\theta\\to 0$ (within 3° at $t=40$ s) | {('✅' if r_pp[2] else '❌')} | {('✅' if r_oc[2] else '❌')} |
     | $x\\to 0$ (within 1 m at $t=40$ s)     | {('✅' if r_pp[3] else '❌')} | {('✅' if r_oc[3] else '❌')} |
 

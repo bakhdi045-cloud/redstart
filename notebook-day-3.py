@@ -2254,6 +2254,78 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### 🔓 Solution
+    ### Interprétation géométrique de \( h \)
+
+    On a :
+    \[
+    h=
+    \begin{bmatrix}
+    x - (\ell/6)\sin\theta \\
+    y + (\ell/6)\cos\theta
+    \end{bmatrix}
+    \]
+
+    Cette expression peut s’écrire comme :
+    \[
+    h=
+    \begin{bmatrix}
+    x\\y
+    \end{bmatrix}
+    +\frac{\ell}{6}
+    \begin{bmatrix}
+    -\sin\theta\\
+    \cos\theta
+    \end{bmatrix}
+    \]
+
+    #### 🔎 Interprétation
+
+    - \((x,y)\) est le **centre de masse du booster**.
+    - Le vecteur
+      \[
+      \frac{\ell}{6}(-\sin\theta,\cos\theta)
+      \]
+      est un vecteur dirigé **le long de l’axe du booster**, orienté vers le haut.
+    - Sa norme vaut \(\ell/6\).
+
+    👉 Donc **\(h\) représente la position d’un point situé sur l’axe du booster, à une distance \(\ell/6\) du centre de masse vers le haut**.
+
+    #### 📐 Cas particulier
+
+    Si \(\theta = 0\) (booster vertical) :
+    \[
+    h=
+    \begin{bmatrix}
+    x\\
+    y+\ell/6
+    \end{bmatrix}
+    \]
+
+     Le point \(h\) est simplement **au-dessus du centre de masse**.
+
+    #### 🧠 Intuition
+
+    \(h\) correspond à un **point fixe attaché au corps du booster** (par exemple proche du haut), utilisé comme point de référence pour décrire sa position ou contrôler sa trajectoire.
+
+    #### ✏️ Schéma
+
+        sommet
+          ^
+          |
+          |   h •   ← point à ℓ/6 du centre
+          |
+          •   ← centre de masse (x,y)
+          |
+          |
+       base / réacteur
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 First and Second-Order Derivatives
 
     Compute $\dot{h}$ as a function of $\dot{x}$, $\dot{y}$, $\theta$ and $\dot{\theta}$ (and constants) and then $\ddot{h}$ as a function of $\theta$ and $z$ (and constants) when the auxiliary system is plugged in the booster.
